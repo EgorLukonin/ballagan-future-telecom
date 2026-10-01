@@ -31,4 +31,25 @@ async def get_materials(publick_key: str, path: str = "/") -> dict:
             detail='Ошибка яндекс дикса api'
         )
 
-    return response.json()
+    data = response.json()
+    items = []
+
+    raw_items = data.get("_embedded", {}).get("items", [])
+    for item in items:
+        items.append({
+            "name": item.get("name"),
+            "type": item.get("type"),
+            "size_bytes": item.get("size", 0),
+            "mime_type": item.get("mime_type"),
+            "download_url": item.get("file")
+        })
+
+    return {
+        "status": "Успешно",
+        "folder_info": {
+            "name": data.get("name", "Root"),
+            "path": data.get("path", "/"),
+            "total_items": len(items)
+        },
+        "items": items
+    }
