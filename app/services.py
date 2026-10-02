@@ -35,7 +35,7 @@ async def get_materials(public_key: str, path: str = "/") -> dict:
     items = []
 
     raw_items = data.get("_embedded", {}).get("items", [])
-    for item in items:
+    for item in raw_items:
         items.append({
             "name": item.get("name"),
             "type": item.get("type"),
