@@ -5,4 +5,3 @@ venv/
 .vscode/
 .idea/
 .python-version
-uv.lock
