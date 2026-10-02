@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.config import settings
-from.routers import materials
+from src.config import settings
+from src.routers import materials
 
 import uvicorn
 
