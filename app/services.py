@@ -4,9 +4,9 @@ from app.config import settings
 
 YANDEX_API = "https://cloud-api.yandex.net/v1/disk/public/resources"
 
-async def get_materials(publick_key: str, path: str = "/") -> dict:
+async def get_materials(public_key: str, path: str = "/") -> dict:
     params = {
-        "public_key": publick_key,
+        "public_key": public_key,
         "path": path,
         "limit": 100
     }

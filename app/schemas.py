@@ -3,7 +3,7 @@ from pydantic import BaseModel
 class Material_Item(BaseModel):
     name: str 
     type: str 
-    size_bytes: int | 0
+    size_bytes: int = 0
     mime_type: str | None
     download_url: str | None
 

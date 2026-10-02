@@ -28,7 +28,7 @@ async def get_materials_list(
         )
 
     result = await get_materials(
-        publick_key=x_disk_folder_link,
+        public_key=x_disk_folder_link,
         path=path
     )
 
