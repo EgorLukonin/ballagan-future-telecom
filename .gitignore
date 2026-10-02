@@ -5,5 +5,4 @@ venv/
 .vscode/
 .idea/
 .python-version
-pyproject.toml
 uv.lock
