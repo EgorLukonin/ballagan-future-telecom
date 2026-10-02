@@ -4,4 +4,6 @@ venv/
 .DS_Store
 .vscode/
 .idea/
-.python-version/
+.python-version
+pyproject.toml
+uv.lock
