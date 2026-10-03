@@ -4,3 +4,16 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+*.override.tf
+.terraform.lock.hcl
+*.tfvars
+*.auto.tfvars
+*.pem
+*.key
+terraform/hosts.ini
+terraform/id_rsa
