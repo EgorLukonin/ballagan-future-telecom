@@ -1,6 +1,6 @@
 import httpx
 from fastapi import HTTPException, status
-from app.config import settings
+from src.config import settings
 
 YANDEX_API = "https://cloud-api.yandex.net/v1/disk/public/resources"
 
