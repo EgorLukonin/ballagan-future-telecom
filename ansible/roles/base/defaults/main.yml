@@ -1,0 +1,11 @@
+---
+base_packages:
+  - curl
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - git
+  - ufw
+  - apt-transport-https
+
+base_timezone: Europe/Moscow

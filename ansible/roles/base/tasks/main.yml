@@ -1,0 +1,49 @@
+---
+- name: Обновить кэш apt
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Установить обновления пакетов
+  ansible.builtin.apt:
+    upgrade: safe
+
+- name: Установить базовые пакеты
+  ansible.builtin.apt:
+    name: "{{ base_packages }}"
+    state: present
+
+- name: Убрать swap из /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^\s*[^#].*\sswap\s'
+    state: absent
+
+- name: Выключить swap
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+  when: ansible_swaptotal_mb > 0
+
+- name: Установить таймзону
+  community.general.timezone:
+    name: "{{ base_timezone }}"
+
+- name: UFW - запретить всё входящее
+  community.general.ufw:
+    policy: deny
+    direction: incoming
+
+- name: UFW - открыть нужные порты
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - 22
+    - 80
+    - 443
+    - 6443
+
+- name: UFW - включить фаервол
+  community.general.ufw:
+    state: enabled
