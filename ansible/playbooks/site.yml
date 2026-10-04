@@ -1,0 +1,7 @@
+---
+- name: Подготовка Ubuntu и установка k3s
+  hosts: webservers
+  become: true
+  roles:
+    - base
+    - k3s

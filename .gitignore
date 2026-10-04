@@ -18,3 +18,4 @@ override.tf
 *.key
 terraform/hosts.ini
 terraform/id_rsa
+kubeconfig

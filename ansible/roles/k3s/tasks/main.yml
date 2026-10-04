@@ -1,0 +1,41 @@
+---
+- name: Скачать установочный скрипт k3s
+  ansible.builtin.get_url:
+    url: "{{ k3s_installer_url }}"
+    dest: /usr/local/bin/k3s-install.sh
+    mode: "0755"
+
+- name: Установить k3s
+  ansible.builtin.command: /usr/local/bin/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "--disable traefik --write-kubeconfig-mode 644"
+  args:
+    creates: /usr/local/bin/k3s
+  changed_when: true
+
+- name: Ждать готовности узла
+  ansible.builtin.command: kubectl get nodes --no-headers
+  register: k3s_nodes
+  until: '" Ready" in k3s_nodes.stdout'
+  retries: 30
+  delay: 5
+  changed_when: false
+
+- name: Скачать kubeconfig на управляющую машину
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ playbook_dir }}/../../kubeconfig"
+    flat: true
+
+- name: Заменить адрес сервера в kubeconfig
+  ansible.builtin.lineinfile:
+    path: "{{ playbook_dir }}/../../kubeconfig"
+    regexp: '^    server:'
+    line: "    server: https://{{ ansible_host }}:6443"
+  delegate_to: localhost
+  run_once: true
+
+- name: Показать состояние кластера
+  ansible.builtin.command: kubectl get nodes
+  changed_when: false
