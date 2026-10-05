@@ -19,3 +19,4 @@ override.tf
 terraform/hosts.ini
 terraform/id_rsa
 kubeconfig
+ansible/inventory.ini

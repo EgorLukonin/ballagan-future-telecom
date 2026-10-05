@@ -35,6 +35,7 @@
     line: "    server: https://{{ ansible_host }}:6443"
   delegate_to: localhost
   run_once: true
+  become: false
 
 - name: Показать состояние кластера
   ansible.builtin.command: kubectl get nodes
