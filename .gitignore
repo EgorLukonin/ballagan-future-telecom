@@ -1,5 +1,8 @@
 __pycache__/
 venv/
+build/
+*.egg-info/
+.pytest_cache/
 .env
 .DS_Store
 .vscode/
@@ -19,3 +22,4 @@ override.tf
 terraform/hosts.ini
 terraform/id_rsa
 kubeconfig
+ansible/inventory.ini

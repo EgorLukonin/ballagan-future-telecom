@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "materials-univ-api"
 version = "0.1.0"
@@ -9,5 +13,14 @@ dependencies = [
     "httpx>=0.28.1",
     "prometheus-fastapi-instrumentator>=8.1.0",
     "pydantic-settings>=2.15.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
     "uvicorn[standard]>=0.54.0",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
