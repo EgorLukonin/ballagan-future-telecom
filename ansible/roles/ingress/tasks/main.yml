@@ -26,11 +26,23 @@
   changed_when: true
   become: false 
 
-- name: Применить шаблон Ingress Controller
+- name: Ждать готовности подов
   ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/ingress-production-template.yaml"
+    kubectl wait --namespace {{ ingress_namespace }}
+    --for=condition=ready pod
+    --selector=app.kubernetes.io/name=ingress-nginx
+    --timeout=90s
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
   become: false
+
+# - name: Применить шаблон Ingress Controller
+#   ansible.builtin.command: >
+#     kubectl apply -f "{{ playbook_dir }}/../../k3s/ingress-production-template.yaml"
+#   environment:
+#     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+#   delegate_to: localhost
+#   run_once: true
+#   become: false
