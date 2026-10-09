@@ -36,3 +36,9 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+          - name: YANDEX_DISK_PUBLIC_KEY
+            valueFrom:
+              secretKeyRef:
+                name: materials-api-secrets
+                key: yandex_disk_public_key

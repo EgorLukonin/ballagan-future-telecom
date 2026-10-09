@@ -2,11 +2,9 @@ import httpx
 from fastapi import HTTPException, status
 from src.config import settings
 
-YANDEX_API = "https://cloud-api.yandex.net/v1/disk/public/resources"
-
 
 async def get_materials(public_key: str, path: str = "/") -> dict:
-    params = {"public_key": public_key, "path": path, "limit": 100}
+    params = {"public_key": public_key or settings.YANDEX_DISK_PUBLIC_KEY, "path": path, "limit": 100}
 
     async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
         try:

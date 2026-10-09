@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     YANDEX_DISK_API: str = "https://cloud-api.yandex.net/v1/disk/public/resources"
+    YANDEX_DISK_PUBLIC_KEY: str = ""
 
     HTTP_TIMEOUT: float = 10.0
 
