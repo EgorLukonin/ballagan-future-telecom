@@ -13,9 +13,7 @@ async def get_materials(public_key: str, path: str = "/") -> dict:
 
     async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
         try:
-            response = await client.get(
-                settings.YANDEX_DISK_API, params=params
-            )
+            response = await client.get(settings.YANDEX_DISK_API, params=params)
         except httpx.RequestError:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
