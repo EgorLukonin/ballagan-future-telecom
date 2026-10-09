@@ -1,4 +1,3 @@
-
 - name: Обновить репозитории Helm
   ansible.builtin.command: helm repo update
   delegate_to: localhost
@@ -31,11 +30,22 @@
   run_once: true
   become: false
 
-# - name: Применить шаблон Ingress Controller
-#   ansible.builtin.command: >
-#     kubectl apply -f "{{ playbook_dir }}/../../k3s/ingress-production-template.yaml"
-#   environment:
-#     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
-#   delegate_to: localhost
-#   run_once: true
-#   become: false
+- name: Применить манифесты деплойментов подов
+  ansible.builtin.command: >
+    kubectl apply -f "{{ playbook_dir }}/../../k3s/deployments.yaml"
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
+- name: Применить шаблон Ingress и сервисов
+  ansible.builtin.command: >
+    kubectl apply -f "{{ playbook_dir }}/../../k3s/ingress-production-template.yaml"
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false

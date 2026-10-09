@@ -63,6 +63,12 @@ resource "openstack_compute_instance_v2" "vm" {
   key_pair        = openstack_compute_keypair_v2.generated_key.name
   security_groups = ["default"]
 
+  lifecycle {
+    ignore_changes = [
+      security_groups,
+    ]
+  }
+
   block_device {
     uuid                  = data.openstack_images_image_v2.ubuntu.id
     source_type           = "image"
