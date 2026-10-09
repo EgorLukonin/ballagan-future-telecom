@@ -1,3 +1,4 @@
+---
 apiVersion: v2
 name: materials-api
 description: Helm chart for API

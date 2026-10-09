@@ -7,3 +7,4 @@ rules:
 ignore: |
   .venv
   k3s/helm-charts/*/templates/
+  
