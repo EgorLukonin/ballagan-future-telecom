@@ -1,9 +1,13 @@
 from unittest.mock import AsyncMock, patch
 
 
+@patch("src.routers.materials.settings")
 @patch("src.routers.materials.get_materials", new_callable=AsyncMock)
-def test_missing_header_uses_default_key(mock_get_materials, client):
-    """Проверка: если заголовок отсутствует, запрос возвращает 200 OK и берет дефолтный ключ"""
+def test_missing_header_uses_default_key(mock_get_materials, mock_settings, client):
+    """Проверка: если заголовок отсутствует, берется ключ по умолчанию из settings"""
+    # Задаем тестовое значение для переменной настроек
+    mock_settings.YANDEX_DISK_PUBLIC_KEY = "https://disk.yandex.ru/d/test_default_key"
+    
     mock_get_materials.return_value = {
         "status": "Успешно",
         "folder_info": {"name": "Тестовая папка", "path": "/", "total_items": 0},

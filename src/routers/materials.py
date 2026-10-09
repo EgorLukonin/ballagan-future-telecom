@@ -21,7 +21,8 @@ async def get_materials_list(
     ),
     path: str = Query("/", description="Путь к подпапке"),
 ):
-    # Если заголовок не передан, берем дефолтный ключ из конфигурации (env / SealedSecrets)
+    # Если заголовок не передан, берем дефолтный ключ из конфигурации 
+    # (env / SealedSecrets)
     target_link = x_disk_folder_link or settings.YANDEX_DISK_PUBLIC_KEY
 
     if not target_link or not target_link.startswith("https://disk.yandex"):
