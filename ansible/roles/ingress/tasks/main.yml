@@ -29,6 +29,7 @@
   delegate_to: localhost
   run_once: true
   become: false
+  changed_when: false
 
 - name: Применить манифесты деплойментов подов
   ansible.builtin.command: >
