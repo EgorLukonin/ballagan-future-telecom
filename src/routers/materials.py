@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Header, Query, HTTPException, status
-from src.schemas import Material_List_Response, Error_Response
+from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException, Query
+
+from src.config import settings
+from src.schemas import Error_Response
 from src.services import get_materials
 
-router = APIRouter(prefix="/api/v1/materials", tags=["Materials"])
+router = APIRouter(prefix="/api/v1/materials", tags=["materials"])
 
 
 @router.get(
     "/list",
-    response_model=Material_List_Response,
     responses={
         401: {"model": Error_Response},
         404: {"model": Error_Response},
@@ -15,17 +18,20 @@ router = APIRouter(prefix="/api/v1/materials", tags=["Materials"])
     },
 )
 async def get_materials_list(
-    x_disk_folder_link: str = Header(
-        ..., alias="X-Disk-Folder-Link", description="Ссылка на папку в яндекс диске"
+    x_disk_folder_link: Optional[str] = Header(
+        None,
+        alias="X-Disk-Folder-Link",
+        description="Ссылка на папку на Яндекс Диске",
     ),
-    path: str = Query("/", description="Путь к подкапке"),
+    path: str = Query("/", description="Путь к подпапке"),
 ):
-    if not x_disk_folder_link.startswith("https://disk.yandex"):
+    target_link = x_disk_folder_link or settings.YANDEX_DISK_PUBLIC_KEY
+
+    if not target_link or not target_link.startswith("https://disk.yandex"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Заголовок X-Disk-Folder-Link неверен. Укажите корреткную ссылку",
+            status_code=401,
+            detail="Не указана или некорректна ссылка на папку Яндекс Диска.",
         )
 
-    result = await get_materials(public_key=x_disk_folder_link, path=path)
-
+    result = await get_materials(public_key=target_link, path=path)
     return result
