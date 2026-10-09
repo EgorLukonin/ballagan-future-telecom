@@ -1,10 +1,19 @@
 from unittest.mock import AsyncMock, patch
 
 
-def test_missing_header_returns_422(client):
-    """Проверка ошибки валидации при отсутствии заголовка"""
+@patch("src.routers.materials.get_materials", new_callable=AsyncMock)
+def test_missing_header_uses_default_key(mock_get_materials, client):
+    """Проверка: если заголовок отсутствует, запрос возвращает 200 OK и берет дефолтный ключ"""
+    mock_get_materials.return_value = {
+        "status": "Успешно",
+        "folder_info": {"name": "Тестовая папка", "path": "/", "total_items": 0},
+        "items": [],
+    }
+
     response = client.get("/api/v1/materials/list")
-    assert response.status_code == 422
+
+    assert response.status_code == 200
+    mock_get_materials.assert_called_once()
 
 
 def test_invalid_header_prefix_returns_401(client):
@@ -13,7 +22,7 @@ def test_invalid_header_prefix_returns_401(client):
     response = client.get("/api/v1/materials/list", headers=headers)
 
     assert response.status_code == 401
-    assert "X-Disk-Folder-Link" in response.json()["detail"]
+    assert "некорректна" in response.json()["detail"].lower()
 
 
 @patch("src.routers.materials.get_materials", new_callable=AsyncMock)
