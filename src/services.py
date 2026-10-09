@@ -1,6 +1,6 @@
-import httpx
 from fastapi import HTTPException, status
 from src.config import settings
+import httpx
 
 
 async def get_materials(public_key: str, path: str = "/") -> dict:
@@ -26,7 +26,8 @@ async def get_materials(public_key: str, path: str = "/") -> dict:
         )
     elif response.status_code != 200:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Ошибка яндекс дикса api"
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Ошибка яндекс дикса api"
         )
 
     data = response.json()
