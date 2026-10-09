@@ -3,14 +3,21 @@ from unittest.mock import AsyncMock, patch
 
 @patch("src.routers.materials.settings")
 @patch("src.routers.materials.get_materials", new_callable=AsyncMock)
-def test_missing_header_uses_default_key(mock_get_materials, mock_settings, client):
+def test_missing_header_uses_default_key(
+    mock_get_materials, mock_settings, client
+):
     """Проверка: если заголовок отсутствует, берется ключ по умолчанию из settings"""
-    # Задаем тестовое значение для переменной настроек
-    mock_settings.YANDEX_DISK_PUBLIC_KEY = "https://disk.yandex.ru/d/test_default_key"
-    
+    mock_settings.YANDEX_DISK_PUBLIC_KEY = (
+        "https://disk.yandex.ru/d/test_default_key"
+    )
+
     mock_get_materials.return_value = {
         "status": "Успешно",
-        "folder_info": {"name": "Тестовая папка", "path": "/", "total_items": 0},
+        "folder_info": {
+            "name": "Тестовая папка",
+            "path": "/",
+            "total_items": 0,
+        },
         "items": [],
     }
 
@@ -32,7 +39,6 @@ def test_invalid_header_prefix_returns_401(client):
 @patch("src.routers.materials.get_materials", new_callable=AsyncMock)
 def test_get_materials_success(mock_get_materials, client):
     """Тест успешного ответа"""
-    # Задаем фейковый ответ, который вернет сервис
     mock_get_materials.return_value = {
         "status": "Успешно",
         "folder_info": {
@@ -60,7 +66,6 @@ def test_get_materials_success(mock_get_materials, client):
     assert data["folder_info"]["total_items"] == 1
     assert data["items"][0]["name"] == "test.txt"
 
-    # Проверяем, что сервисный метод вызван с правильными аргументами
     mock_get_materials.assert_called_once_with(
         public_key="https://disk.yandex.ru/d/test_key",
         path="/",

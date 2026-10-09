@@ -1,33 +1,36 @@
 from fastapi import HTTPException, status
-from src.config import settings
 import httpx
+
+from src.config import settings
 
 
 async def get_materials(public_key: str, path: str = "/") -> dict:
-    params = {  
-            "public_key": public_key or settings.YANDEX_DISK_PUBLIC_KEY, 
-            "path": path,
-            "limit": 100
-              }
+    params = {
+        "public_key": public_key or settings.YANDEX_DISK_PUBLIC_KEY,
+        "path": path,
+        "limit": 100,
+    }
 
     async with httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT) as client:
         try:
-            response = await client.get(settings.YANDEX_DISK_API, params=params)
-        except httpx.RequestError as exc:
+            response = await client.get(
+                settings.YANDEX_DISK_API, params=params
+            )
+        except httpx.RequestError:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Ошибка сети при обращении к яндекс диску: {str(exc)}",
+                detail="Сервис Яндекс Диска временно недоступен.",
             )
 
     if response.status_code == 404:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Папка не найдена или нет доступа",
+            detail="Ресурс или папка на Яндекс Диске не найдены.",
         )
     elif response.status_code != 200:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Ошибка яндекс дикса api"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Ошибка при получении данных с Яндекс Диска.",
         )
 
     data = response.json()
@@ -39,9 +42,9 @@ async def get_materials(public_key: str, path: str = "/") -> dict:
             {
                 "name": item.get("name"),
                 "type": item.get("type"),
-                "size_bytes": item.get("size", 0),
+                "size": item.get("size", 0),
                 "mime_type": item.get("mime_type"),
-                "download_url": item.get("file"),
+                "file": item.get("file"),
             }
         )
 
