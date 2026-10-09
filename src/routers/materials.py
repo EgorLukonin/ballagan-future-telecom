@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
@@ -6,8 +5,6 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from src.config import settings
 from src.schemas import Error_Response
 from src.services import get_materials
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/materials", tags=["materials"])
 
