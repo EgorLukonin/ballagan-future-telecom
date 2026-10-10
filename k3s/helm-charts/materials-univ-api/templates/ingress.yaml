@@ -2,12 +2,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "materials-api.fullname" . }}
+  name: api-ingress-primary
   labels:
     {{- include "materials-api.labels" . | nindent 4 }}
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
+    {{- if .Values.ingress.host }}
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
@@ -15,7 +16,56 @@ spec:
             pathType: {{ .Values.ingress.pathType }}
             backend:
               service:
-                name: {{ include "materials-api.fullname" . }}
+                name: api-service-primary
                 port:
                   number: {{ .Values.service.port }}
-{{- end }}
+    {{- else }}
+    - http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: api-service-primary
+                port:
+                  number: {{ .Values.service.port }}
+    {{- end }}
+
+---
+{{- if .Values.canary.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress-canary
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "{{ .Values.canary.weight }}"
+  labels:
+    {{- include "materials-api.labels" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  rules:
+    {{- if .Values.ingress.host }}
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: api-service-canary
+                port:
+                  number: {{ .Values.service.port }}
+    {{- else }}
+    - http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: api-service-canary
+                port:
+                  number: {{ .Values.service.port }}
+    {{- end }}
+{{- end -}}
+{{- end -}}

@@ -1,18 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "materials-api.fullname" . }}
+  name: {{ include "materials-api.fullname" . }}-primary
   labels:
     {{- include "materials-api.labels" . | nindent 4 }}
+    app: production-api
+    version: {{ .Values.primary.version | quote }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.primary.replicaCount }}
   selector:
     matchLabels:
       {{- include "materials-api.selectorLabels" . | nindent 6 }}
+      app: production-api
+      version: {{ .Values.primary.version | quote }}
   template:
     metadata:
       labels:
         {{- include "materials-api.selectorLabels" . | nindent 8 }}
+        app: production-api
+        version: {{ .Values.primary.version | quote }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -20,7 +26,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -37,8 +43,62 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-          - name: YANDEX_DISK_PUBLIC_KEY
-            valueFrom:
-              secretKeyRef:
-                name: materials-api-secrets
-                key: yandex_disk_public_key
+            - name: YANDEX_DISK_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: materials-api-secrets
+                  key: yandex_disk_public_key
+
+---
+{{- if .Values.canary.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "materials-api.fullname" . }}-canary
+  labels:
+    {{- include "materials-api.labels" . | nindent 4 }}
+    app: production-api
+    version: {{ .Values.canary.version | quote }}
+spec:
+  replicas: {{ .Values.canary.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "materials-api.selectorLabels" . | nindent 6 }}
+      app: production-api
+      version: {{ .Values.canary.version | quote }}
+  template:
+    metadata:
+      labels:
+        {{- include "materials-api.selectorLabels" . | nindent 8 }}
+        app: production-api
+        version: {{ .Values.canary.version | quote }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.canary.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: YANDEX_DISK_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: materials-api-secrets
+                  key: yandex_disk_public_key
+{{- end -}}
