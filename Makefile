@@ -1,6 +1,13 @@
-.PHONY: up tf-init tf-plan tf-apply tf-destroy ansible build-image push-image
+.PHONY: up tf-init tf-plan tf-apply tf-destroy ansible build-image push-image down
 
 up: tf-init tf-apply ansible push-image
+
+down: tf-destroy
+	rm -f kubeconfig
+	rm -f ballagan-images.tar
+	rm -f ansible/inventory.ini
+	rm -f terraform/id_rsa terraform/id_rsa.pub
+	rm -f terraform/hosts.ini
 
 tf-init:
 	cd terraform && terraform init

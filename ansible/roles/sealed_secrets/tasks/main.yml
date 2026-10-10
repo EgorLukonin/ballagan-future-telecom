@@ -1,0 +1,47 @@
+---
+- name: Добавить Sealed Secrets
+  ansible.builtin.command: >
+    helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
+- name: Обновить репозитории Helm
+  ansible.builtin.command: helm repo update
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  become: false
+
+- name: Импортировать мастер-ключ Sealed Secrets
+  ansible.builtin.command: >
+    kubectl apply -f "{{ playbook_dir }}/../../k3s/sealed-secrets/master-key.yaml"
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
+- name: Установить Sealed Secrets Controller через Helm
+  ansible.builtin.command: >
+    helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets
+    --namespace kube-system
+    --create-namespace
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
+- name: Применить запечатанный секрет приложения
+  ansible.builtin.command: >
+    kubectl apply -f "{{ playbook_dir }}/../../k3s/sealed-secrets/materials-api-sealed-secret.yaml"
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false

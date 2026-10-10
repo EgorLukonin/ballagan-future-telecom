@@ -5,4 +5,5 @@
   roles:
     - base
     - k3s
+    - sealed_secrets
     - ingress
