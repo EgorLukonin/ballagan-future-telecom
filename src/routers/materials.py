@@ -2,7 +2,6 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Header, HTTPException, Query, status
-from opentelemetry.trace import Status
 
 from src.config import settings
 from src.schemas import ErrorResponse, MaterialListResponse
@@ -39,7 +38,7 @@ async def get_materials_list(
     if parsed_url.scheme != "https" or parsed_url.netloc not in allowed_netlocs:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Некорректная ссылка на Яндекс Диск. Ожидается официальный домен (disk.yandex.ru или yadi.sk).",
+            detail="Некорректная ссылка на Яндекс Диск.",
         )
     result = await get_materials(
         public_key=target_link, path=path, limit=limit, offset=offset

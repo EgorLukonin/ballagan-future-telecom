@@ -1,8 +1,4 @@
 from unittest.mock import AsyncMock, patch
-import pytest
-from httpx import Response
-from src.services import get_materials
-from fastapi import HTTPException
 
 
 @patch("src.routers.materials.settings")
