@@ -11,7 +11,7 @@ app = FastAPI(
     version=settings.VERSION,
     description="Микросервис для получения данных с папки на яндекс диске",
     docs_url="/docs",
-    redoc_utl="/redoc",
+    redoc_url="/redoc",
 )
 
 app.include_router(materials.router)
