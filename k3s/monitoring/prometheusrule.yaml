@@ -1,0 +1,20 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: materials-api-health
+  namespace: monitoring
+spec:
+  groups:
+    - name: materials-api
+      rules:
+        - alert: UniversityMaterialsAPIDown
+          expr: up{job=~"default/materials-api/.*"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "API «Учебные материалы» недоступен"
+            description: >-
+              Экземпляр {{ $labels.pod }} не отвечает на /metrics
+              более 2 минут.

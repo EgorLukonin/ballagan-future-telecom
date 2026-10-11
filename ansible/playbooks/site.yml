@@ -11,3 +11,5 @@
       tags: [apps]
     - role: ingress
       tags: [apps]
+    - role: monitoring
+      tags: [apps]

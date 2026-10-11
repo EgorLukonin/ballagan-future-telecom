@@ -17,7 +17,7 @@ make up
 1. **Terraform** — `terraform init` + `apply`: заказ ВМ в Selectel, сеть, плавающий IP, генерация ssh-ключа и inventory
 2. **ansible-infra** — роли `base` (пакеты, ufw, swap off) и `k3s` (кластер k3s без Traefik, kubeconfig выгружается в `./kubeconfig`)
 3. **push-image** — локальная сборка одного образа (`ballagan-telecom-api:latest` + тег `:canary`), доставка на ВМ через scp и импорт в containerd (`ctr images import`) — внешний реестр не нужен
-4. **ansible-apps** — роли `sealed_secrets` (контроллер + секрет Яндекс.Диска) и `ingress` (ingress-nginx + helm-чарт приложения primary/canary 90/10)
+4. **ansible-apps** — роли `sealed_secrets` (контроллер + секрет Яндекс.Диска), `ingress` (ingress-nginx + helm-чарт приложения primary/canary 90/10) и `monitoring` (kube-prometheus-stack: Prometheus, Grafana, Alertmanager + ServiceMonitor, алерт-правило, дашборд)
 
 Остановить и удалить всё: `make down` (terraform destroy + очистка артефактов).
 
@@ -94,9 +94,66 @@ python -m venv .venv
 
 Если config-скан Trivy падает на неактуальной находке — заведите исключение в файле `.trivyignore` в корне репо (формат: id находки построчно).
 
+## Мониторинг
+
+Стек: **kube-prometheus-stack** (Prometheus + Alertmanager + Grafana) ставится ролью `monitoring` на фазе `apps` (`make up`), пин версии `92.3.0`. Конфигурация — `k3s/monitoring/`:
+
+- `values.yaml` — урезано под ВМ 4 GB: Prometheus 1 реплика / retention 15d, отключены kubeEtcd/kubeControllerManager/kubeScheduler/kubeProxy
+- `servicemonitor.yaml` — сбор `/metrics` с primary/canary нашего API
+- `prometheusrule.yaml` — алерт `UniversityMaterialsAPIDown` (падение экземпляра)
+- `grafana-dashboard-configmap.yaml` — дашборд «University Materials API» (RPS, 5xx, p95, up)
+
+### Перед первым `make up` — запечатать пароль Grafana (вручную, один раз)
+
+Секрет хранится в git только запечатанным (Sealed Secrets):
+
+```bash
+# 1. Установите kubeseal
+#    Linux:   wget https://github.com/bitnami-labs/sealed-secrets/releases/latest/download/kubeseal-$(uname -s | tr 'A-Z' 'a-z')-amd64.tar.gz ...
+#    macOS:   brew install kubeseal
+
+# 2. Извлеките сертификат из вашего мастер-ключа
+python3 - <<'EOF'
+import base64, yaml
+d = yaml.safe_load(open("k3s/sealed-secrets/master-key.yaml"))
+print(base64.b64decode(d["items"][0]["data"]["tls.crt"]).decode())
+EOF
+#    > cert.pem
+
+# 3. Создайте plaintext-секрет (в git не класть!)
+cat > monitoring-secret-plaintext.yaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: monitoring-secrets
+  namespace: monitoring
+type: Opaque
+stringData:
+  admin-user: admin
+  admin-password: ВАШ_ПАРОЛЬ
+EOF
+
+# 4. Запечатайте и уберите plaintext
+kubeseal --cert cert.pem --format yaml < monitoring-secret-plaintext.yaml > k3s/sealed-secrets/monitoring-sealed-secret.yaml
+rm -f monitoring-secret-plaintext.yaml cert.pem
+```
+
+Без файла `k3s/sealed-secrets/monitoring-sealed-secret.yaml` роль `monitoring` остановится с подсказкой.
+
+### Доступ после развёртывания
+
+| Что | Как открыть |
+|---|---|
+| Grafana | `http://<IP-сервера>/grafana`, логин `admin`, пароль из секрета |
+| Prometheus UI | `kubectl --kubeconfig kubeconfig -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090` → http://localhost:9090 |
+| Alertmanager UI | `kubectl --kubeconfig kubeconfig -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093` → http://localhost:9093 |
+| Дашборд API | Grafana → Dashboards → «University Materials API» |
+
+Проверка метрик: в Prometheus UI выполните `up{job=~"default/materials-api/.*"}` — должно вернуть экземпляры primary и canary.
+
 ## Что осталось по кейсу (вне этого шага)
 
 - Живой прогон `make up` на арендованной ВМ (terraform + ansible + k3s «с нуля»)
-- Мониторинг: Prometheus + Grafana + Alertmanager, алерты в Telegram
+- Алертинг: приёмник Telegram в Alertmanager (следующий шаг)
 - Заполнить README по шаблону ForAgent.md (архитектура, SLI/SLA, команда)
 - Видео-демо до 5 минут
