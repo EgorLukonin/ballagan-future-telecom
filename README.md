@@ -26,7 +26,7 @@ make up
 - Linux/macOS с `make`, `ssh`, `scp`
 - Terraform ≥ 1.6, Ansible + коллекция `community.general` (`ansible-galaxy collection install community.general`)
 - Docker (для `build-image`), Helm, kubectl (для ролей apps — выполняются на localhost)
-- Переменные окружения для Terraform: `TF_VAR_selectel_username`, `TF_VAR_selectel_password`, `TF_VAR_selectel_account`, `TF_VAR_project_id`, ``
+- Переменные окружения для Terraform: `TF_VAR_selectel_username`, `TF_VAR_selectel_password`, `TF_VAR_selectel_account`, `TF_VAR_project_id`, `TF_VAR_selectel_ip_address`
 
 ### Мастер-ключ Sealed Secrets
 
