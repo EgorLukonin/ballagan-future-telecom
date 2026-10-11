@@ -1,4 +1,23 @@
 ---
+- name: Проверить наличие мастер-ключа Sealed Secrets
+  ansible.builtin.stat:
+    path: "{{ sealed_secrets_master_key }}"
+  delegate_to: localhost
+  run_once: true
+  become: false
+  register: sealed_secrets_master_key_stat
+
+- name: Мастер-ключ Sealed Secrets не найден
+  ansible.builtin.fail:
+    msg: >
+      Файл {{ sealed_secrets_master_key }} не найден.
+      Получите его с кластера, где живёт ключ:
+      kubectl get secret -n kube-system sealed-secrets-key -o yaml > master-key.yaml
+      и положите по указанному пути (файл в .gitignore),
+      либо задайте свой путь: -e sealed_secrets_master_key=/path/to/master-key.yaml
+  when: not sealed_secrets_master_key_stat.stat.exists
+  run_once: true
+
 - name: Добавить Sealed Secrets
   ansible.builtin.command: >
     helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets
@@ -16,7 +35,7 @@
 
 - name: Импортировать мастер-ключ Sealed Secrets
   ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/sealed-secrets/master-key.yaml"
+    kubectl apply -f "{{ sealed_secrets_master_key }}"
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost

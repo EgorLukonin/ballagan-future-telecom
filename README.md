@@ -2,6 +2,44 @@
 
 DevOps-кейс «Облачный DevOps-конвейер: от репозитория до production-Kubernetes за 3 команды».
 
+## Запуск (make up / make down)
+
+Полное развёртывание одной командой:
+
+```bash
+git clone ...
+cd ballagan-future-telecom
+make up
+```
+
+Что делает `make up` (последовательно):
+
+1. **Terraform** — `terraform init` + `apply`: заказ ВМ в Selectel, сеть, плавающий IP, генерация ssh-ключа и inventory
+2. **ansible-infra** — роли `base` (пакеты, ufw, swap off) и `k3s` (кластер k3s без Traefik, kubeconfig выгружается в `./kubeconfig`)
+3. **push-image** — локальная сборка одного образа (`ballagan-telecom-api:latest` + тег `:canary`), доставка на ВМ через scp и импорт в containerd (`ctr images import`) — внешний реестр не нужен
+4. **ansible-apps** — роли `sealed_secrets` (контроллер + секрет Яндекс.Диска) и `ingress` (ingress-nginx + helm-чарт приложения primary/canary 90/10)
+
+Остановить и удалить всё: `make down` (terraform destroy + очистка артефактов).
+
+### Prerequisites (управляющая машина)
+
+- Linux/macOS с `make`, `ssh`, `scp`
+- Terraform ≥ 1.6, Ansible + коллекция `community.general` (`ansible-galaxy collection install community.general`)
+- Docker (для `build-image`), Helm, kubectl (для ролей apps — выполняются на localhost)
+- Переменные окружения для Terraform: `TF_VAR_selectel_username`, `TF_VAR_selectel_password`, `TF_VAR_selectel_account`, `TF_VAR_project_id`
+
+### Мастер-ключ Sealed Secrets
+
+Роль `sealed_secrets` требует мастер-ключ контроллера — это секрет, он **не хранится в git** (путь в `.gitignore`). Перед первым `make up`:
+
+1. Получите ключ с кластера, где он уже живёт:
+   ```bash
+   kubectl get secret -n kube-system sealed-secrets-key -o yaml > k3s/sealed-secrets/master-key.yaml
+   ```
+2. Файл должен лежать по пути `k3s/sealed-secrets/master-key.yaml` (или укажите свой: `-e sealed_secrets_master_key=/path/to/master-key.yaml`)
+
+Без этого файла роль упадёт с понятной ошибкой до установки контроллера. Если ключа нет вообще — контроллер сгенерирует новый, но тогда `materials-api-sealed-secret.yaml` придётся перезапечатывать.
+
 ## Что сделать вручную (чек-лист для запуска CI)
 
 ### 1. Настроить секреты в GitHub
@@ -50,13 +88,15 @@ python -m venv .venv
 Пайплайн (`.github/workflows/ci.yml`) срабатывает на push в `main` и на каждый pull request:
 
 1. **Lint** — `black --check`, `flake8`, `yamllint` (ansible, k3s, workflow), `ansible-lint`
-2. **Tests** — установка проекта (`pip install .`) и `pytest -v`
-3. **Build, scan and push** (только после успеха 1–2) — сборка образа через buildx, пуш в Docker Hub только из `main`, затем сканирование уязвимостей **Trivy** (пайплайн падает при находках HIGH/CRITICAL)
+2. **Trivy IaC scan** — сканирование конфигураций (terraform, ansible, helm, Dockerfile) на misconfig и секреты; падение на HIGH/CRITICAL; результаты в **GitHub → Security → Code scanning**
+3. **Tests** — установка проекта (`pip install .`) и `pytest -v`
+4. **Build, scan and push** (только после успеха 1 и 3) — сборка образа через buildx, экспорт в tar-архив и пуш в Docker Hub (только из `main`), затем сканирование образа **Trivy** по tar-архиву (пайплайн падает при HIGH/CRITICAL); результаты в **Security → Code scanning**
+
+Если config-скан Trivy падает на неактуальной находке — заведите исключение в файле `.trivyignore` в корне репо (формат: id находки построчно).
 
 ## Что осталось по кейсу (вне этого шага)
 
 - Живой прогон `make up` на арендованной ВМ (terraform + ansible + k3s «с нуля»)
-- Helm-чарты стабильной и canary-версий, Sealed Secrets
 - Мониторинг: Prometheus + Grafana + Alertmanager, алерты в Telegram
 - Заполнить README по шаблону ForAgent.md (архитектура, SLI/SLA, команда)
 - Видео-демо до 5 минут
