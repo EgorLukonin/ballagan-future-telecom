@@ -4,6 +4,7 @@ metadata:
   name: api-service-primary
   labels:
     {{- include "materials-api.labels" . | nindent 4 }}
+    app: production-api
 spec:
   type: ClusterIP
   selector:
@@ -23,6 +24,7 @@ metadata:
   name: api-service-canary
   labels:
     {{- include "materials-api.labels" . | nindent 4 }}
+    app: production-api
 spec:
   type: ClusterIP
   selector:

@@ -1,0 +1,170 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: materials-api-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  materials-api-dashboard.json: |-
+    {
+      "uid": "materials-api",
+      "title": "University Materials API",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Экземпляры online",
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(up{job=~\"default/materials-api/.*\"})",
+              "legendFormat": "online",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "RPS",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\"}[5m]))",
+              "legendFormat": "requests/s",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Ошибки 5xx",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\",status=~\"5..\"}[5m]))",
+              "legendFormat": "5xx/s",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Латентность p95",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"default/materials-api/.*\"}[5m])) by (le))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "HTTP по кодам",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 12
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\"}[5m])) by (status)",
+              "legendFormat": "{{ status }}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          }
+        }
+      ]
+    }
