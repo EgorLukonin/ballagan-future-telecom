@@ -15,4 +15,3 @@ Dockerfile
 uv.lock
 Makefile
 LICENSE
-ForAgent.md

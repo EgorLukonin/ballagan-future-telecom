@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+  security-events: write
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -44,6 +48,31 @@ jobs:
           cd ansible
           ANSIBLE_CONFIG=ansible.cfg ansible-lint playbooks roles
 
+  security:
+    name: Trivy IaC scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac-results.sarif
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          hide-progress: true
+
+      - name: Upload IaC scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-iac-results.sarif
+          category: trivy-iac
+
   test:
     name: Tests
     runs-on: ubuntu-latest
@@ -79,24 +108,30 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build, export and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' }}
-          load: ${{ github.ref != 'refs/heads/main' }}
+          outputs: type=docker,dest=/github/workspace/image.tar
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trivy scan
+      - name: Trivy image scan
         uses: aquasecurity/trivy-action@0.36.0
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: table
+          input: /github/workspace/image.tar
+          format: sarif
+          output: trivy-image-results.sarif
           exit-code: "1"
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-        env:
-          TRIVY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          TRIVY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+          limit-severities-for-sarif: true
+
+      - name: Upload image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-image-results.sarif
+          category: trivy-image

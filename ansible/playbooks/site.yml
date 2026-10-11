@@ -3,7 +3,11 @@
   hosts: webservers
   become: true
   roles:
-    - base
-    - k3s
-    - sealed_secrets
-    - ingress
+    - role: base
+      tags: [infra]
+    - role: k3s
+      tags: [infra]
+    - role: sealed_secrets
+      tags: [apps]
+    - role: ingress
+      tags: [apps]

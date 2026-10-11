@@ -1,0 +1,2 @@
+---
+sealed_secrets_master_key: "{{ playbook_dir }}/../../k3s/sealed-secrets/master-key.yaml"
