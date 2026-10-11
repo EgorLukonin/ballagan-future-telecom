@@ -151,9 +151,76 @@ rm -f monitoring-secret-plaintext.yaml cert.pem
 
 Проверка метрик: в Prometheus UI выполните `up{job=~"default/materials-api/.*"}` — должно вернуть экземпляры primary и canary.
 
+## Алертинг в Telegram
+
+Алерты из Prometheus маршрутизируются в Alertmanager и уходят в Telegram-бот. Конфиг Alertmanager (с токеном бота) хранится в git только запечатанным — секрет `alertmanager-telegram-secret` в namespace `monitoring` (ключ `alertmanager.yaml`), на который ссылается `alertmanagerSpec.configSecret` в `k3s/monitoring/values.yaml`.
+
+Алерты:
+- `UniversityMaterialsAPIDown` (critical) — экземпляр не отвечает более 2 минут
+- `UniversityMaterialsAPIHighErrorRate` (warning) — доля 5xx выше 5% в течение 5 минут
+
+Логика реагирования: группировка по `alertname`, `group_interval 5m`, повтор `repeat_interval 4h`; алерты приложения подавляются (`inhibit_rules`), пока нода недоступна (KubeNodeUnreachable/KubeNodeNotReady/KubeletDown).
+
+### Перед первым `make up` — запечатать конфиг Alertmanager (вручную, один раз)
+
+```bash
+# 1. Сертификат из мастер-ключа (как в разделе «Мониторинг»)
+python3 - <<'EOF' > cert.pem
+import base64, yaml
+d = yaml.safe_load(open("k3s/sealed-secrets/master-key.yaml"))
+print(base64.b64decode(d["items"][0]["data"]["tls.crt"]).decode())
+EOF
+
+# 2. Plaintext-конфиг с вашим токеном бота и chat_id (в git не класть!)
+cat > alertmanager-telegram-plaintext.yaml <<'EOF'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-telegram-secret
+  namespace: monitoring
+type: Opaque
+stringData:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: telegram
+      group_by: [alertname]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+    receivers:
+      - name: telegram
+        telegram_configs:
+          - bot_token: "ВАШ_ТОКЕН_БОТА"
+            chat_id: ВАШ_CHAT_ID
+            parse_mode: HTML
+    inhibit_rules:
+      - source_matchers:
+          - alertname =~ "KubeNodeUnreachable|KubeNodeNotReady|KubeletDown"
+        target_matchers:
+          - alertname =~ "UniversityMaterialsAPI.*"
+EOF
+
+# 3. Запечатать и убрать plaintext
+kubeseal --cert cert.pem --format yaml < alertmanager-telegram-plaintext.yaml > k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml
+rm -f alertmanager-telegram-plaintext.yaml cert.pem
+```
+
+Без файла `k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml` роль `monitoring` остановится с подсказкой.
+
+### Проверка работы алертинга
+
+1. Секрет расшифровался: `kubectl --kubeconfig kubeconfig -n monitoring get secret alertmanager-telegram-secret`
+2. Алерт сработал: `kubectl --kubeconfig kubeconfig -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093` → http://localhost:9093 → Alerts
+3. Интеграция: остановите API на 2+ минуты и ждите сообщение в Telegram:
+   ```bash
+   kubectl --kubeconfig kubeconfig -n default scale deployment materials-api-primary --replicas=0
+   ```
+   (через ~2 минуты алерт станет firing, через группировку уйдёт в Telegram; вернуть: `--replicas=1`)
+
 ## Что осталось по кейсу (вне этого шага)
 
 - Живой прогон `make up` на арендованной ВМ (terraform + ansible + k3s «с нуля»)
-- Алертинг: приёмник Telegram в Alertmanager (следующий шаг)
 - Заполнить README по шаблону ForAgent.md (архитектура, SLI/SLA, команда)
 - Видео-демо до 5 минут

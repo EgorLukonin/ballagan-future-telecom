@@ -18,3 +18,17 @@ spec:
             description: >-
               Экземпляр {{ $labels.pod }} не отвечает на /metrics
               более 2 минут.
+        - alert: UniversityMaterialsAPIHighErrorRate
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*", status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total{
+            job=~"default/materials-api/.*"}[5m])), 1) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Высокая доля ошибок 5xx у API «Учебные материалы»"
+            description: >-
+              Доля ответов 5xx превышает 5% на протяжении 5 минут
+              (текущее значение: {{ $value | humanizePercentage }}).
