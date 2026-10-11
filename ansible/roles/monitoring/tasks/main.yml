@@ -41,6 +41,34 @@
   changed_when: true
   become: false
 
+- name: Проверить наличие запечатанного секрета Alertmanager
+  ansible.builtin.stat:
+    path: "{{ monitoring_alertmanager_secret_path }}"
+  delegate_to: localhost
+  run_once: true
+  become: false
+  register: monitoring_alertmanager_secret_stat
+
+- name: Секрет Alertmanager не найден
+  ansible.builtin.fail:
+    msg: >
+      Файл {{ monitoring_alertmanager_secret_path }} не найден.
+      Запечатайте секрет alertmanager-telegram-secret (ключ alertmanager.yaml)
+      командой kubeseal --cert cert.pem --format yaml < plaintext.yaml > alertmanager-telegram-sealed-secret.yaml.
+      Инструкция: см. раздел «Алертинг в Telegram» в README.
+  when: not monitoring_alertmanager_secret_stat.stat.exists
+  run_once: true
+
+- name: Применить запечатанный секрет Alertmanager
+  ansible.builtin.command: >
+    kubectl apply -f "{{ monitoring_alertmanager_secret_path }}"
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
 - name: Установить kube-prometheus-stack
   ansible.builtin.command: >
     helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack
@@ -73,6 +101,19 @@
     kubectl wait --namespace {{ monitoring_namespace }}
     --for=condition=ready pod
     --selector=app.kubernetes.io/name=grafana
+    --timeout=180s
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+  become: false
+
+- name: Ждать готовности Alertmanager
+  ansible.builtin.command: >
+    kubectl wait --namespace {{ monitoring_namespace }}
+    --for=condition=ready pod
+    --selector=app.kubernetes.io/name=alertmanager
     --timeout=180s
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"

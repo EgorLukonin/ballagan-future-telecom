@@ -23,6 +23,7 @@ alertmanager:
   enabled: true
   alertmanagerSpec:
     replicas: 1
+    configSecret: alertmanager-telegram-secret
     resources:
       requests:
         cpu: 50m
