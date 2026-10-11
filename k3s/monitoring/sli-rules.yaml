@@ -1,0 +1,93 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: materials-api-sli
+  namespace: monitoring
+spec:
+  groups:
+    - name: materials-api-sli
+      rules:
+        - record: sli:http_requests:rate30d
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*"}[30d]))
+        - record: sli:http_errors_5xx:rate30d
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*", status=~"5.."}[30d]))
+        - record: sli:availability:ratio30d
+          expr: >-
+            1 - (sli:http_errors_5xx:rate30d
+            / clamp_min(sli:http_requests:rate30d, 1))
+        - record: sli:error_rate:ratio30d
+          expr: >-
+            sli:http_errors_5xx:rate30d
+            / clamp_min(sli:http_requests:rate30d, 1)
+        - record: sli:error_rate:ratio1h
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*", status=~"5.."}[1h]))
+            / clamp_min(sum(rate(http_requests_total{
+            job=~"default/materials-api/.*"}[1h])), 1)
+        - record: sli:error_rate:ratio6h
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*", status=~"5.."}[6h]))
+            / clamp_min(sum(rate(http_requests_total{
+            job=~"default/materials-api/.*"}[6h])), 1)
+        - record: sli:latency_p95:seconds30d
+          expr: >-
+            histogram_quantile(0.95, sum(rate(
+            http_request_duration_seconds_bucket{
+            job=~"default/materials-api/.*"}[30d])) by (le))
+        - record: sli:latency_p99:seconds30d
+          expr: >-
+            histogram_quantile(0.99, sum(rate(
+            http_request_duration_seconds_bucket{
+            job=~"default/materials-api/.*"}[30d])) by (le))
+        - record: sli:materials_list_success:ratio30d
+          expr: >-
+            sum(rate(http_requests_total{
+            job=~"default/materials-api/.*",
+            handler=~".*materials/list", status=~"2.."}[30d]))
+            / clamp_min(sum(rate(http_requests_total{
+            job=~"default/materials-api/.*",
+            handler=~".*materials/list", status=~"2..|5.."}[30d])), 1)
+    - name: materials-api-burn-rate
+      rules:
+        - alert: UniversityMaterialsAPIErrorBudgetBurnFast
+          expr: sli:error_rate:ratio1h > 0.072
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Быстрое сгорание error budget (fast burn)"
+            description: >-
+              Доля ошибок 5xx за последний час {{ $value | humanizePercentage }}
+              превышает порог 7.2% (14.4x от бюджета 0.5%).
+              При сохранении темпа budget исчерпается за ~2 дня.
+        - alert: UniversityMaterialsAPIErrorBudgetBurnSlow
+          expr: sli:error_rate:ratio6h > 0.03
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Медленное сгорание error budget (slow burn)"
+            description: >-
+              Доля ошибок 5xx за последние 6 часов {{ $value | humanizePercentage }}
+              превышает порог 3% (6x от бюджета 0.5%).
+              При сохранении темпа budget исчерпается за ~5 дней.
+        - alert: UniversityMaterialsAPILatencySLO
+          expr: >-
+            histogram_quantile(0.95, sum(rate(
+            http_request_duration_seconds_bucket{
+            job=~"default/materials-api/.*"}[30m])) by (le)) > 0.5
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Нарушение SLO по латентности (p95 > 500 мс)"
+            description: >-
+              p95 латентности за 30 минут:
+              {{ $value | humanizeDuration }} (SLO: 500 мс).
