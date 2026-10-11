@@ -1,4 +1,8 @@
 from unittest.mock import AsyncMock, patch
+import pytest
+from httpx import Response
+from src.services import get_materials
+from fastapi import HTTPException
 
 
 @patch("src.routers.materials.settings")
@@ -23,18 +27,18 @@ def test_missing_header_uses_default_key(mock_get_materials, mock_settings, clie
     mock_get_materials.assert_called_once()
 
 
-def test_invalid_header_prefix_returns_401(client):
+def test_invalid_header_prefix_returns_400(client):
     """Проверка валидации формата ссылки в заголовке"""
     headers = {"X-Disk-Folder-Link": "https://google.com"}
     response = client.get("/api/v1/materials/list", headers=headers)
 
-    assert response.status_code == 401
-    assert "некорректна" in response.json()["detail"].lower()
+    assert response.status_code == 400
+    assert "некорректная ссылка" in response.json()["detail"].lower()
 
 
 @patch("src.routers.materials.get_materials", new_callable=AsyncMock)
 def test_get_materials_success(mock_get_materials, client):
-    """Тест успешного ответа"""
+    """Тест успешного ответа с учетом корректных полей схем"""
     mock_get_materials.return_value = {
         "status": "Успешно",
         "folder_info": {
@@ -46,15 +50,15 @@ def test_get_materials_success(mock_get_materials, client):
             {
                 "name": "test.txt",
                 "type": "file",
-                "size_bytes": 128,
+                "size": 128,
                 "mime_type": "text/plain",
-                "download_url": "https://downloader.disk.yandex.ru/test",
+                "file": "https://downloader.disk.yandex.ru/test",
             }
         ],
     }
 
     headers = {"X-Disk-Folder-Link": "https://disk.yandex.ru/d/test_key"}
-    response = client.get("/api/v1/materials/list", headers=headers)
+    response = client.get("/api/v1/materials/list?limit=10&offset=0", headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -65,4 +69,6 @@ def test_get_materials_success(mock_get_materials, client):
     mock_get_materials.assert_called_once_with(
         public_key="https://disk.yandex.ru/d/test_key",
         path="/",
+        limit=10,
+        offset=0,
     )
