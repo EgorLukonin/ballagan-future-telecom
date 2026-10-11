@@ -14,3 +14,8 @@ variable "selectel_account" {
 variable "project_id" {
   type        = string
 }
+
+variable "selectel_ip_address" {
+  type        = string
+  default     = null
+}
