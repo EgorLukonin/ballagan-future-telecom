@@ -48,6 +48,12 @@ jobs:
           cd ansible
           ANSIBLE_CONFIG=ansible.cfg ansible-lint playbooks roles
 
+      - name: Makefile dry-run
+        run: |
+          make help
+          make -n up
+          make -n canary 50
+
   security:
     name: Trivy IaC scan
     runs-on: ubuntu-latest

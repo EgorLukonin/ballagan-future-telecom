@@ -21,6 +21,30 @@ make up
 
 Остановить и удалить всё: `make down` (terraform destroy + очистка артефактов).
 
+### Все команды make
+
+Полный список: `make help` (цель по умолчанию).
+
+| Цель | Что делает |
+|---|---|
+| `make help` | список всех команд с описаниями (по умолчанию) |
+| `make up` | полное развёртывание: terraform → k3s → образы → приложения; в конце печатает URL API и Grafana |
+| `make down` | terraform destroy + удаление локальных артефактов |
+| `make prereqs` | проверка установленных инструментов (terraform, ansible, helm, kubectl, docker, ssh, scp) |
+| `make inventory` | генерация `ansible/inventory.ini` из terraform output |
+| `make ansible-infra` / `ansible-apps` | фазы ansible по отдельности (теги `infra` / `apps`) |
+| `make tf-init` / `tf-plan` / `tf-apply` / `tf-destroy` | terraform по шагам |
+| `make build-image` / `push-image` | сборка образа и доставка на ВМ (scp + `ctr images import`) |
+| `make test` | unit-тесты pytest |
+| `make lint` | black + flake8 + yamllint + ansible-lint (как в CI) |
+| `make status` | terraform output + узлы и поды кластера |
+| `make app-status` / `app-logs` | поды и логи приложения (primary/canary) |
+| `make rollout` | перезапуск деплойментов приложения |
+| `make verify` | сквозная проверка: `/health`, `/metrics` через ingress, узлы кластера |
+| `make grafana` / `prometheus` / `alertmanager` | port-forward UI мониторинга на localhost |
+| `make canary 50` | задать вес canary (%), по умолчанию 10 |
+| `make clean` | удалить локальные артефакты без terraform destroy |
+
 ### Prerequisites (управляющая машина)
 
 - Linux/macOS с `make`, `ssh`, `scp`
