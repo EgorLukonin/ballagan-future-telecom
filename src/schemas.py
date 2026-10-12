@@ -1,27 +1,27 @@
 from pydantic import BaseModel
 
 
-class Material_Item(BaseModel):
+class MaterialItem(BaseModel):
     name: str
     type: str
-    size_bytes: int = 0
+    size: int = 0
     mime_type: str | None
-    download_url: str | None
+    file: str | None
 
 
-class Folder_Info(BaseModel):
+class FolderInfo(BaseModel):
     name: str
     path: str
     total_items: int
 
 
-class Material_List_Response(BaseModel):
+class MaterialListResponse(BaseModel):
     status: str
-    folder_info: Folder_Info
-    items: list[Material_Item]
+    folder_info: FolderInfo
+    items: list[MaterialItem]
 
 
-class Error_Response(BaseModel):
+class ErrorResponse(BaseModel):
     status: str
     error_code: str
     message: str

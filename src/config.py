@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "University Materials API"
-    VERSION: str = "0.0.1"
+    VERSION: str = "0.1.0"
     DEBUG: bool = False
 
     YANDEX_DISK_API: str = "https://cloud-api.yandex.net/v1/disk/public/resources"
