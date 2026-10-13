@@ -34,7 +34,7 @@ async def get_materials(
             detail="Ошибка яндекс диска api",
         )
 
-    data = await response.json()
+    data = response.json()
     items = []
 
     embedded = data.get("_embedded", {})
