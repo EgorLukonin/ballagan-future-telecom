@@ -31,7 +31,7 @@ prereqs: ## Проверить, что все нужные инструмент�
 	if [ $$fail -ne 0 ]; then echo "Установите недостающие инструменты (см. README)"; exit 1; fi
 
 inventory: ## Сгенерировать ansible/inventory.ini из terraform output
-	@if [ ! -f ansible/inventory.ini ]; then sleep 15; fi
+	@if [ ! -f ansible/inventory.ini ]; then sleep 20; fi
 	@VM_IP=$$(cd terraform && terraform output -raw server_ip); \
 	printf "[webservers]\n$$VM_IP ansible_user=root ansible_ssh_private_key_file=../terraform/id_rsa\n" > ansible/inventory.ini
 

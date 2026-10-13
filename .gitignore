@@ -24,3 +24,5 @@ terraform/id_rsa
 kubeconfig
 ansible/inventory.ini
 k3s/sealed-secrets/master-key.yaml
+k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml
+k3s/sealed-secrets/monitoring-sealed-secret.yaml

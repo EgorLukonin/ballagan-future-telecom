@@ -29,7 +29,7 @@ resource "openstack_networking_subnet_v2" "subnet" {
 
 data "openstack_networking_network_v2" "external" {
   external = true
-  region   = "ru-6"
+  region   = "ru-9"
 }
 
 resource "openstack_networking_router_v2" "router" {
@@ -59,7 +59,7 @@ data "openstack_images_image_v2" "ubuntu" {
 
 resource "openstack_compute_instance_v2" "vm" {
   name            = "ballagan-server"
-  flavor_name     = "SL2.2-4096-AMD"
+  flavor_name     = "SL1.2-4096"
   key_pair        = openstack_compute_keypair_v2.generated_key.name
   security_groups = ["default"]
 
