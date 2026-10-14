@@ -18,6 +18,8 @@ dependencies = [
     "pytest-asyncio>=1.4.0",
     "structlog>=25.1.0",
     "uvicorn[standard]>=0.54.0",
+    "wheel>=0.46.2",
+    "jaraco.context>=6.1.0",
 ]
 
 [tool.black]
