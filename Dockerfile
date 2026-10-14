@@ -1,4 +1,4 @@
-FROM python:3.12-slim@sha256:7c9e8f5b5e8a8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8
+FROM python:3.12.7-slim-bullseye
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
