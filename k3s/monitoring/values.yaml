@@ -37,6 +37,11 @@ grafana:
     existingSecret: monitoring-secrets
     userKey: admin-user
     passwordKey: admin-password
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: monitoring
   resources:
     requests:
       cpu: 50m
