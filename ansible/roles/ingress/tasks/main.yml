@@ -41,7 +41,7 @@
 - name: Применение чартов
   ansible.builtin.command: >
     helm upgrade --install materials-api "{{ playbook_dir }}/../../k3s/helm-charts/materials-univ-api"
-    --namespace default
+    --namespace materials-api
     --create-namespace
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"

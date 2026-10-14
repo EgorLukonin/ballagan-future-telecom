@@ -11,11 +11,11 @@ spec:
         - record: sli:http_requests:rate30d
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*"}[30d]))
+            job=~"materials-api/materials-api/.*"}[30d]))
         - record: sli:http_errors_5xx:rate30d
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*", status=~"5.."}[30d]))
+            job=~"materials-api/materials-api/.*", status=~"5.."}[30d]))
         - record: sli:availability:ratio30d
           expr: >-
             1 - (sli:http_errors_5xx:rate30d
@@ -27,32 +27,32 @@ spec:
         - record: sli:error_rate:ratio1h
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*", status=~"5.."}[1h]))
+            job=~"materials-api/materials-api/.*", status=~"5.."}[1h]))
             / clamp_min(sum(rate(http_requests_total{
-            job=~"default/materials-api/.*"}[1h])), 1)
+            job=~"materials-api/materials-api/.*"}[1h])), 1)
         - record: sli:error_rate:ratio6h
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*", status=~"5.."}[6h]))
+            job=~"materials-api/materials-api/.*", status=~"5.."}[6h]))
             / clamp_min(sum(rate(http_requests_total{
-            job=~"default/materials-api/.*"}[6h])), 1)
+            job=~"materials-api/materials-api/.*"}[6h])), 1)
         - record: sli:latency_p95:seconds30d
           expr: >-
             histogram_quantile(0.95, sum(rate(
             http_request_duration_seconds_bucket{
-            job=~"default/materials-api/.*"}[30d])) by (le))
+            job=~"materials-api/materials-api/.*"}[30d])) by (le))
         - record: sli:latency_p99:seconds30d
           expr: >-
             histogram_quantile(0.99, sum(rate(
             http_request_duration_seconds_bucket{
-            job=~"default/materials-api/.*"}[30d])) by (le))
+            job=~"materials-api/materials-api/.*"}[30d])) by (le))
         - record: sli:materials_list_success:ratio30d
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*",
+            job=~"materials-api/materials-api/.*",
             handler=~".*materials/list", status=~"2.."}[30d]))
             / clamp_min(sum(rate(http_requests_total{
-            job=~"default/materials-api/.*",
+            job=~"materials-api/materials-api/.*",
             handler=~".*materials/list", status=~"2..|5.."}[30d])), 1)
     - name: materials-api-burn-rate
       rules:
@@ -82,7 +82,7 @@ spec:
           expr: >-
             histogram_quantile(0.95, sum(rate(
             http_request_duration_seconds_bucket{
-            job=~"default/materials-api/.*"}[30m])) by (le)) > 0.5
+            job=~"materials-api/materials-api/.*"}[30m])) by (le)) > 0.5
           for: 15m
           labels:
             severity: warning

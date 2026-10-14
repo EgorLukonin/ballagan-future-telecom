@@ -38,7 +38,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(up{job=~\"default/materials-api/.*\"})",
+              "expr": "sum(up{job=~\"materials-api/materials-api/.*\"})",
               "legendFormat": "online",
               "refId": "A"
             }
@@ -119,7 +119,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\"}[5m]))",
               "legendFormat": "requests/s",
               "refId": "A"
             }
@@ -145,7 +145,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\",status=~\"5..\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\",status=~\"5..\"}[5m]))",
               "legendFormat": "5xx/s",
               "refId": "A"
             }
@@ -171,7 +171,7 @@ data:
           },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"default/materials-api/.*\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"materials-api/materials-api/.*\"}[5m])) by (le))",
               "legendFormat": "p95",
               "refId": "A"
             }
@@ -197,7 +197,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"default/materials-api/.*\"}[5m])) by (status)",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\"}[5m])) by (status)",
               "legendFormat": "{{ status }}",
               "refId": "A"
             }

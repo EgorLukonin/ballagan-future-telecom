@@ -9,7 +9,7 @@ spec:
     - name: materials-api
       rules:
         - alert: UniversityMaterialsAPIDown
-          expr: up{job=~"default/materials-api/.*"} == 0
+          expr: up{job=~"materials-api/materials-api/.*"} == 0
           for: 2m
           labels:
             severity: critical
@@ -21,9 +21,9 @@ spec:
         - alert: UniversityMaterialsAPIHighErrorRate
           expr: >-
             sum(rate(http_requests_total{
-            job=~"default/materials-api/.*", status=~"5.."}[5m]))
+            job=~"materials-api/materials-api/.*", status=~"5.."}[5m]))
             / clamp_min(sum(rate(http_requests_total{
-            job=~"default/materials-api/.*"}[5m])), 1) > 0.05
+            job=~"materials-api/materials-api/.*"}[5m])), 1) > 0.05
           for: 5m
           labels:
             severity: warning
