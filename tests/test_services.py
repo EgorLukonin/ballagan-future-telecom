@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 import httpx
@@ -13,22 +13,24 @@ async def test_get_materials_success(mock_async_client_cls):
     # Создаем мок для ответа от httpx
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "name": "RootFolder",
-        "path": "/",
-        "_embedded": {
-            "total": 1,
-            "items": [
-                {
-                    "name": "lection.pdf",
-                    "type": "file",
-                    "size": 2048,
-                    "mime_type": "application/pdf",
-                    "file": "https://downloader.disk.yandex.ru/test_file",
-                }
-            ],
-        },
-    }
+    mock_response.json = MagicMock(
+        return_value={
+            "name": "RootFolder",
+            "path": "/",
+            "_embedded": {
+                "total": 1,
+                "items": [
+                    {
+                        "name": "lection.pdf",
+                        "type": "file",
+                        "size": 2048,
+                        "mime_type": "application/pdf",
+                        "file": "https://downloader.disk.yandex.ru/test_file",
+                    }
+                ],
+            },
+        }
+    )
 
     # Настраиваем поведение AsyncClient в виде контекстного менеджера
     mock_client = AsyncMock()
