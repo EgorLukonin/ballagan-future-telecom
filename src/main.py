@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import settings
+from src.logging import RequestLoggingMiddleware, configure_logging
 from src.routers import materials
 
 import uvicorn
+
+configure_logging()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -14,6 +17,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.add_middleware(RequestLoggingMiddleware)
 app.include_router(materials.router)
 
 instrumentator = Instrumentator(

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
 
     HTTP_TIMEOUT: float = 10.0
 
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

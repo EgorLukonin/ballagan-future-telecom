@@ -61,8 +61,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: v0.75.0
+          cache: true
+
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           scan-type: config
           scan-ref: .
@@ -71,6 +77,7 @@ jobs:
           exit-code: "1"
           severity: HIGH,CRITICAL
           hide-progress: true
+          skip-setup-trivy: true
 
       - name: Upload IaC scan results
         uses: github/codeql-action/upload-sarif@v3
@@ -124,8 +131,14 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+        with:
+          version: v0.75.0
+          cache: true
+
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           input: /github/workspace/image.tar
           format: sarif
@@ -134,6 +147,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           limit-severities-for-sarif: true
+          skip-setup-trivy: true
 
       - name: Upload image scan results
         uses: github/codeql-action/upload-sarif@v3
