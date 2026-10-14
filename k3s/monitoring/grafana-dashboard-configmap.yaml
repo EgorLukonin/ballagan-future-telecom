@@ -38,7 +38,11 @@ data:
           },
           "targets": [
             {
+<<<<<<< Updated upstream
               "expr": "sum(up{job=~\"materials-api/materials-api/.*\"})",
+=======
+              "expr": "sum(up{job=~\"api-service-.*\"})",
+>>>>>>> Stashed changes
               "legendFormat": "online",
               "refId": "A"
             }
@@ -119,7 +123,11 @@ data:
           },
           "targets": [
             {
+<<<<<<< Updated upstream
               "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\"}[5m]))",
+=======
+              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\"}[5m]))",
+>>>>>>> Stashed changes
               "legendFormat": "requests/s",
               "refId": "A"
             }
@@ -145,7 +153,11 @@ data:
           },
           "targets": [
             {
+<<<<<<< Updated upstream
               "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\",status=~\"5..\"}[5m]))",
+=======
+              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\",status=~\"5..\"}[5m]))",
+>>>>>>> Stashed changes
               "legendFormat": "5xx/s",
               "refId": "A"
             }
@@ -171,7 +183,11 @@ data:
           },
           "targets": [
             {
+<<<<<<< Updated upstream
               "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"materials-api/materials-api/.*\"}[5m])) by (le))",
+=======
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"api-service-.*\"}[5m])) by (le))",
+>>>>>>> Stashed changes
               "legendFormat": "p95",
               "refId": "A"
             }
@@ -197,7 +213,11 @@ data:
           },
           "targets": [
             {
+<<<<<<< Updated upstream
               "expr": "sum(rate(http_requests_total{job=~\"materials-api/materials-api/.*\"}[5m])) by (status)",
+=======
+              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\"}[5m])) by (status)",
+>>>>>>> Stashed changes
               "legendFormat": "{{ status }}",
               "refId": "A"
             }
@@ -208,4 +228,4 @@ data:
           }
         }
       ]
-    }
+    } 
