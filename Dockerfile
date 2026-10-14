@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:python:3.11-alpine AS builder
 
 WORKDIR /src
 
@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv lock && \
     uv sync --frozen --no-install-project --no-dev
 
-FROM python:3.15-slim
+FROM python:3.11-slim
 
 RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
