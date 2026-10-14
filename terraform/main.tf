@@ -1,10 +1,19 @@
+resource "random_password" "ssh_key_suffix" {
+  length  = 8
+  special = false
+}
+
 resource "tls_private_key" "ssh" {
   algorithm = "RSA"
   rsa_bits  = 4096
+
+  keepers = {
+    key_suffix = random_password.ssh_key_suffix.result
+  }
 }
 
 resource "openstack_compute_keypair_v2" "generated_key" {
-  name       = "auto-key"
+  name       = var.ssh_key_name
   public_key = tls_private_key.ssh.public_key_openssh
 }
 
@@ -29,7 +38,7 @@ resource "openstack_networking_subnet_v2" "subnet" {
 
 data "openstack_networking_network_v2" "external" {
   external = true
-  region   = "ru-9"
+  region   = var.region
 }
 
 resource "openstack_networking_router_v2" "router" {
@@ -59,9 +68,9 @@ data "openstack_images_image_v2" "ubuntu" {
 
 resource "openstack_compute_instance_v2" "vm" {
   name            = "ballagan-server"
-  flavor_name     = "SL1.2-4096"
+  flavor_name     = var.flavor_name
   key_pair        = openstack_compute_keypair_v2.generated_key.name
-  security_groups = ["default"]
+  security_groups = []
 
   lifecycle {
     ignore_changes = [
@@ -73,9 +82,11 @@ resource "openstack_compute_instance_v2" "vm" {
     uuid                  = data.openstack_images_image_v2.ubuntu.id
     source_type           = "image"
     destination_type      = "volume"
-    volume_size           = 20
+    volume_size           = var.volume_size
+    volume_type           = var.volume_type
     boot_index            = 0
     delete_on_termination = true
+    destination_type      = "volume"
   }
 
   network {

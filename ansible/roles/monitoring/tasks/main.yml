@@ -1,16 +1,10 @@
 ---
 - name: Добавить репозиторий prometheus-community
-  ansible.builtin.command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: https://prometheus-community.github.io/helm-charts
   delegate_to: localhost
   run_once: true
-  changed_when: false
-  become: false
-
-- name: Обновить репозитории Helm
-  ansible.builtin.command: helm repo update
-  delegate_to: localhost
-  run_once: true
-  changed_when: false
   become: false
 
 - name: Проверить наличие запечатанного секрета мониторинга
@@ -32,23 +26,23 @@
   run_once: true
 
 - name: Создать пространство имен monitoring
-  ansible.builtin.shell: >
-    kubectl create namespace {{ monitoring_namespace }} --dry-run=client -o yaml | kubectl apply -f -
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ monitoring_namespace }}"
+    state: present
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Применить запечатанный секрет мониторинга
-  ansible.builtin.command: >
-    kubectl apply -f "{{ monitoring_sealed_secret_path }}"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ monitoring_sealed_secret_path }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Проверить наличие запечатанного секрета Alertmanager
@@ -70,99 +64,106 @@
   run_once: true
 
 - name: Применить запечатанный секрет Alertmanager
-  ansible.builtin.command: >
-    kubectl apply -f "{{ monitoring_alertmanager_secret_path }}"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ monitoring_alertmanager_secret_path }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Установить kube-prometheus-stack
-  ansible.builtin.command: >
-    helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack
-    --namespace {{ monitoring_namespace }}
-    --create-namespace
-    --version {{ monitoring_chart_version }}
-    --values "{{ monitoring_values_path }}"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.helm:
+    name: kube-prometheus-stack
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: "{{ monitoring_namespace }}"
+    create_namespace: true
+    chart_version: "{{ monitoring_chart_version }}"
+    values_files:
+      - "{{ monitoring_values_path }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Ждать готовности оператора Prometheus
-  ansible.builtin.command: >
-    kubectl rollout status deployment/kube-prometheus-stack-operator --namespace {{ monitoring_namespace }} --timeout=120s
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    name: kube-prometheus-stack-operator
+    namespace: "{{ monitoring_namespace }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
+    wait: true
+    wait_condition:
+      type: Available
+      status: "True"
+    wait_timeout: 120
   delegate_to: localhost
   run_once: true
-  changed_when: false
   become: false
 
 - name: Ждать готовности Grafana
-  ansible.builtin.command: >
-    kubectl wait --namespace {{ monitoring_namespace }}
-    --for=condition=ready pod
-    --selector=app.kubernetes.io/name=grafana
-    --timeout=180s
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ monitoring_namespace }}"
+    label_selectors:
+      - app.kubernetes.io/name=grafana
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 180
   delegate_to: localhost
   run_once: true
-  changed_when: false
   become: false
 
 - name: Ждать готовности Alertmanager
-  ansible.builtin.command: >
-    kubectl rollout status statefulset/alertmanager-kube-prometheus-stack-alertmanager --namespace {{ monitoring_namespace }} --timeout=180s
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s_info:
+    kind: StatefulSet
+    name: alertmanager-kube-prometheus-stack-alertmanager
+    namespace: "{{ monitoring_namespace }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 180
   delegate_to: localhost
   run_once: true
-  changed_when: false
   become: false
 
 - name: Применить ServiceMonitor для приложения
-  ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/monitoring/servicemonitor.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../k3s/monitoring/servicemonitor.yaml"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Применить алерт-правило
-  ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/monitoring/prometheusrule.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../k3s/monitoring/prometheusrule.yaml"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Применить SLI-правила и burn-rate алерты
-  ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/monitoring/sli-rules.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../k3s/monitoring/sli-rules.yaml"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Применить дашборд Grafana
-  ansible.builtin.command: >
-    kubectl apply -n {{ monitoring_namespace }}
-    -f "{{ playbook_dir }}/../../k3s/monitoring/grafana-dashboard-configmap.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../k3s/monitoring/grafana-dashboard-configmap.yaml"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false

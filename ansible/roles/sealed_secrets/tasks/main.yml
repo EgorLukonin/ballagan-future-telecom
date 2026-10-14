@@ -18,49 +18,39 @@
   when: not sealed_secrets_master_key_stat.stat.exists
   run_once: true
 
-- name: Добавить Sealed Secrets
-  ansible.builtin.command: >
-    helm repo add sealed-secrets https://bitnami.github.io/sealed-secrets
+- name: Добавить репозиторий Sealed Secrets
+  kubernetes.core.helm_repository:
+    name: sealed-secrets
+    repo_url: https://bitnami.github.io/sealed-secrets
   delegate_to: localhost
   run_once: true
-  changed_when: true
-  become: false
-
-- name: Обновить репозитории Helm
-  ansible.builtin.command: helm repo update
-  delegate_to: localhost
-  run_once: true
-  changed_when: false
   become: false
 
 - name: Импортировать мастер-ключ Sealed Secrets
-  ansible.builtin.command: >
-    kubectl replace --force -f "{{ playbook_dir }}/../../k3s/sealed-secrets/master-key.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ sealed_secrets_master_key }}"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Установить Sealed Secrets Controller через Helm
-  ansible.builtin.command: >
-    helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets
-    --namespace kube-system
-    --create-namespace
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.helm:
+    name: sealed-secrets
+    chart_ref: sealed-secrets/sealed-secrets
+    release_namespace: kube-system
+    create_namespace: true
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Применить запечатанный секрет приложения
-  ansible.builtin.command: >
-    kubectl apply -f "{{ playbook_dir }}/../../k3s/sealed-secrets/materials-api-sealed-secret.yaml"
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ playbook_dir }}/../../k3s/sealed-secrets/materials-api-sealed-secret.yaml"
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false

@@ -1,51 +1,57 @@
 - name: Добавить репозиторий Ingress Nginx
-  ansible.builtin.command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+  kubernetes.core.helm_repository:
+    name: ingress-nginx
+    repo_url: https://kubernetes.github.io/ingress-nginx
   delegate_to: localhost
   run_once: true
-  changed_when: false
   become: false
 
 - name: Обновить репозитории Helm
-  ansible.builtin.command: helm repo update
+  kubernetes.core.helm_repository:
+    name: ingress-nginx
+    repo_url: https://kubernetes.github.io/ingress-nginx
   delegate_to: localhost
   run_once: true
-  changed_when: false
   become: false
 
 - name: Установить Ingress Nginx Controller
-  ansible.builtin.command: >
-    helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx
-    --namespace {{ ingress_namespace }}
-    --create-namespace
-    --set controller.service.type=LoadBalancer
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.helm:
+    name: ingress-nginx
+    chart_ref: ingress-nginx/ingress-nginx
+    release_namespace: "{{ ingress_namespace }}"
+    create_namespace: true
+    values:
+      controller:
+        service:
+          type: LoadBalancer
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false
 
 - name: Ждать готовности подов
-  ansible.builtin.command: >
-    kubectl wait --namespace {{ ingress_namespace }}
-    --for=condition=ready pod
-    --selector=app.kubernetes.io/name=ingress-nginx
-    --timeout=90s
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ ingress_namespace }}"
+    label_selectors:
+      - app.kubernetes.io/name=ingress-nginx
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 90
   delegate_to: localhost
   run_once: true
   become: false
-  changed_when: false
 
 - name: Применение чартов
-  ansible.builtin.command: >
-    helm upgrade --install materials-api "{{ playbook_dir }}/../../k3s/helm-charts/materials-univ-api"
-    --namespace materials-api
-    --create-namespace
-  environment:
-    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  kubernetes.core.helm:
+    name: materials-api
+    chart_ref: "{{ playbook_dir }}/../../k3s/helm-charts/materials-univ-api"
+    release_namespace: materials-api
+    create_namespace: true
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
-  changed_when: true
   become: false

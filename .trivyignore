@@ -1,3 +1,4 @@
-KSV001
-KSV002
-KSV017
+ruleIDs:
+  - KSV001
+  - KSV002
+  - KSV017
