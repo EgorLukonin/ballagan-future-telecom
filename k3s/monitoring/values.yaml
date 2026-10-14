@@ -51,8 +51,7 @@ grafana:
     enabled: true
     ingressClassName: nginx
     pathType: Prefix
-    paths:
-      - /grafana
+    path: /grafana
 
 prometheusOperator:
   resources:

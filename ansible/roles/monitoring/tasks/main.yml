@@ -31,6 +31,16 @@
   when: not monitoring_secret_stat.stat.exists
   run_once: true
 
+- name: Создать пространство имен monitoring
+  ansible.builtin.shell: >
+    kubectl create namespace {{ monitoring_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  changed_when: true
+  become: false
+
 - name: Применить запечатанный секрет мониторинга
   ansible.builtin.command: >
     kubectl apply -f "{{ monitoring_sealed_secret_path }}"
@@ -85,10 +95,7 @@
 
 - name: Ждать готовности оператора Prometheus
   ansible.builtin.command: >
-    kubectl wait --namespace {{ monitoring_namespace }}
-    --for=condition=ready pod
-    --selector=app.kubernetes.io/name=prometheus-operator
-    --timeout=120s
+    kubectl rollout status deployment/kube-prometheus-stack-operator --namespace {{ monitoring_namespace }} --timeout=120s
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
@@ -111,10 +118,7 @@
 
 - name: Ждать готовности Alertmanager
   ansible.builtin.command: >
-    kubectl wait --namespace {{ monitoring_namespace }}
-    --for=condition=ready pod
-    --selector=app.kubernetes.io/name=alertmanager
-    --timeout=180s
+    kubectl rollout status statefulset/alertmanager-kube-prometheus-stack-alertmanager --namespace {{ monitoring_namespace }} --timeout=180s
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
