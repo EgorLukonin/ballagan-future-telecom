@@ -20,6 +20,11 @@ spec:
         app: production-api
         version: {{ .Values.primary.version | quote }}
     spec:
+      securityContext:
+        {{- toYaml .Values.securityContext.pod | nindent 8 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -42,6 +47,11 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext.container | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           env:
             - name: YANDEX_DISK_PUBLIC_KEY
               valueFrom:
@@ -73,6 +83,11 @@ spec:
         app: production-api
         version: {{ .Values.canary.version | quote }}
     spec:
+      securityContext:
+        {{- toYaml .Values.securityContext.pod | nindent 8 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.canary.tag }}"
@@ -95,6 +110,11 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext.container | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           env:
             - name: YANDEX_DISK_PUBLIC_KEY
               valueFrom:
