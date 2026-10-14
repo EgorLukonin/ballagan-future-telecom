@@ -26,3 +26,4 @@ ansible/inventory.ini
 k3s/sealed-secrets/master-key.yaml
 k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml
 k3s/sealed-secrets/monitoring-sealed-secret.yaml
+terraform/id_rsa.bin
