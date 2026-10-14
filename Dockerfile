@@ -17,6 +17,8 @@ RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m -s /bin/bash a
 
 WORKDIR /src
 
+RUN pip install --no-cache-dir --upgrade pip setuptools>=79.0.0 wheel>=0.45.1
+
 COPY --from=builder /src/.venv /src/.venv
 
 COPY . .
