@@ -133,9 +133,9 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Setup Trivy CLI
-        uses: aquasecurity/setup-trivy@v0.3.0
+        uses: aquasecurity/setup-trivy@v0.3.1
         with:
-          version: v0.74.0
+          version: v0.75.0
           cache: true
 
       - name: Trivy image scan
