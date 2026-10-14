@@ -52,8 +52,9 @@ resources:
 securityContext:
   pod:
     runAsNonRoot: true
-    runAsUser: 1000
-    fsGroup: 1000
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
     seccompProfile:
       type: RuntimeDefault
   container:
@@ -62,4 +63,5 @@ securityContext:
     capabilities:
       drop: ["ALL"]
     runAsNonRoot: true
-    runAsUser: 1000
+    runAsUser: 10001
+    runAsGroup: 10001

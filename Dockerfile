@@ -13,6 +13,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.11-slim
 
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m -s /bin/bash appuser
+
 WORKDIR /src
 
 COPY --from=builder /src/.venv /src/.venv
@@ -28,6 +30,11 @@ EXPOSE 8000
 
 ENV UVICORN_HOST=0.0.0.0
 ENV UVICORN_PORT=8000
+
+USER 10001
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 CMD ["python", "src/main.py"]
 
