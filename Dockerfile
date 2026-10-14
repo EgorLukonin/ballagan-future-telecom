@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.11-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.15-trixie-slim AS builder
 
 WORKDIR /src
 
@@ -11,13 +11,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv lock && \
     uv sync --frozen --no-install-project --no-dev
 
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
 WORKDIR /src
-
-RUN pip install --no-cache-dir --upgrade pip setuptools>=79.0.0 wheel>=0.45.1
 
 COPY --from=builder /src/.venv /src/.venv
 
