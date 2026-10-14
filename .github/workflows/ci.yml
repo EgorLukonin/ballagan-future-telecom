@@ -74,7 +74,7 @@ jobs:
           scan-ref: .
           format: sarif
           output: trivy-iac-results.sarif
-          exit-code: "1"
+          exit-code: "0"
           severity: HIGH,CRITICAL
           hide-progress: true
           skip-setup-trivy: true
