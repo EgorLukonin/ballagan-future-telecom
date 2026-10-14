@@ -5,9 +5,10 @@ WORKDIR /src
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.loc[k] ./
+COPY pyproject.toml ./
 
 RUN --mount=type=cache,target=/root/.cache/uv \
+    uv lock && \
     uv sync --frozen --no-install-project --no-dev
 
 FROM python:3.11-slim
