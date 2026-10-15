@@ -1,50 +1,53 @@
 #!/usr/bin/env python3
 """
-Seal Alertmanager Telegram config with kubeseal.
+Seal Alertmanager Email config with kubeseal.
 
 Usage:
-  python scripts/seal_alertmanager.py --bot-token <TOKEN> --chat-id <CHAT_ID>
-  python scripts/seal_alertmanager.py --bot-token <TOKEN> --chat-id <CHAT_ID> --output <PATH>
+  python scripts/seal_alertmanager_email.py --smtp-user <EMAIL> --smtp-password <APP_PASSWORD> --from <EMAIL> --to <EMAIL>
+  python scripts/seal_alertmanager_email.py --smtp-user <EMAIL> --smtp-password <APP_PASSWORD> --from <EMAIL> --to <EMAIL> --output <PATH>
 
 Reads master cert from k3s/sealed-secrets/master-key.yaml
-Outputs sealed secret to k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml (default)
+Outputs sealed secret to k3s/sealed-secrets/alertmanager-email-sealed-secret.yaml (default)
 """
 
 import argparse
 import base64
 import subprocess
 import sys
-import tempfile
 import yaml
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).parent.parent
 MASTER_KEY_PATH = REPO_ROOT / "k3s" / "sealed-secrets" / "master-key.yaml"
-DEFAULT_OUTPUT = REPO_ROOT / "k3s" / "sealed-secrets" / "alertmanager-telegram-sealed-secret.yaml"
+DEFAULT_OUTPUT = REPO_ROOT / "k3s" / "sealed-secrets" / "alertmanager-email-sealed-secret.yaml"
 
 ALERTMANAGER_CONFIG_TEMPLATE = """apiVersion: v1
 kind: Secret
 metadata:
-  name: alertmanager-telegram-secret
+  name: alertmanager-email-secret
   namespace: monitoring
 type: Opaque
 stringData:
   alertmanager.yaml: |
     global:
       resolve_timeout: 5m
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: '{smtp_from}'
+      smtp_auth_username: '{smtp_user}'
+      smtp_auth_password: '{smtp_password}'
+      smtp_require_tls: true
     route:
-      receiver: telegram
+      receiver: email
       group_by: [alertname]
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 4h
     receivers:
-      - name: telegram
-        telegram_configs:
-          - bot_token: "{bot_token}"
-            chat_id: {chat_id}
-            parse_mode: HTML
+      - name: email
+        email_configs:
+          - to: '{email_to}'
+            send_resolved: true
     inhibit_rules:
       - source_matchers:
           - alertname =~ "KubeNodeUnreachable|KubeNodeNotReady|KubeletDown"
@@ -70,7 +73,6 @@ def seal_secret(cert_pem: str, plaintext_yaml: str) -> str:
     if result.returncode != 0:
         raise RuntimeError(f"kubeseal failed: {result.stderr.decode()}")
 
-    # kubeseal reads from stdin, so we need to pipe the plaintext
     result = subprocess.run(
         ["kubeseal", "--cert", "/dev/stdin", "--format", "yaml"],
         input=plaintext_yaml.encode(),
@@ -84,16 +86,20 @@ def seal_secret(cert_pem: str, plaintext_yaml: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate/Seal Alertmanager Telegram config")
-    parser.add_argument("--bot-token", required=True, help="Telegram bot token")
-    parser.add_argument("--chat-id", required=True, help="Telegram chat ID (numeric)")
+    parser = argparse.ArgumentParser(description="Generate/Seal Alertmanager Email config")
+    parser.add_argument("--smtp-user", required=True, help="Gmail address (SMTP username)")
+    parser.add_argument("--smtp-password", required=True, help="Gmail App Password (16 chars)")
+    parser.add_argument("--from", dest="smtp_from", required=True, help="From email address")
+    parser.add_argument("--to", dest="email_to", required=True, help="To email address (recipient)")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Output sealed secret path")
     parser.add_argument("--plaintext-only", action="store_true", help="Only generate plaintext YAML (skip sealing)")
     args = parser.parse_args()
 
     plaintext = ALERTMANAGER_CONFIG_TEMPLATE.format(
-        bot_token=args.bot_token,
-        chat_id=args.chat_id,
+        smtp_user=args.smtp_user,
+        smtp_password=args.smtp_password,
+        smtp_from=args.smtp_from,
+        email_to=args.email_to,
     )
 
     if args.plaintext_only:
@@ -110,7 +116,7 @@ def main():
 
     cert_pem = load_master_cert(MASTER_KEY_PATH)
 
-    print("Sealing Alertmanager config...")
+    print("Sealing Alertmanager Email config...")
     sealed = seal_secret(cert_pem, plaintext)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

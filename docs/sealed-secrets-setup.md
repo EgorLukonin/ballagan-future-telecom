@@ -69,53 +69,73 @@ rm -f monitoring-secret-plaintext.yaml cert.pem
 
 ---
 
-## 4. Конфиг Alertmanager для Telegram-бота
+## 4. Конфиг Alertmanager для Email (Gmail)
 
-Алерты уходят в Telegram. Конфиг Alertmanager (с токеном бота) хранится в git только запечатанным — секрет `alertmanager-telegram-secret` в namespace `monitoring`.
+Алерты уходят на Email через Gmail SMTP. Конфиг Alertmanager хранится в git только запечатанным — секрет `alertmanager-email-secret` в namespace `monitoring`.
 
-### Plaintext (не класть в git!):
+### Генерация и запечатывание скриптом:
 
 ```bash
-cat > alertmanager-telegram-plaintext.yaml <<'EOF'
+python scripts/seal_alertmanager_email.py \
+  --smtp-user "your-email@gmail.com" \
+  --smtp-password "xxxx xxxx xxxx xxxx" \
+  --from "your-email@gmail.com" \
+  --to "alerts@example.com"
+```
+
+> **Важно:** Для Gmail нужен App Password (не обычный пароль):
+> 1. Включите 2FA в Google Account
+> 2. Security → App passwords → "Mail" → сгенерируйте 16-символьный пароль
+> 3. Используйте его как `--smtp-password` (пробелы можно оставить или убрать)
+
+Скрипт сам извлечёт сертификат из `master-key.yaml`, запечатает конфиг и запишет в `k3s/sealed-secrets/alertmanager-email-sealed-secret.yaml`.
+
+### Ручной вариант (если kubeseal установлен локально):
+
+```bash
+# 1. Извлеките cert.pem из master-key.yaml (см. пункт 2)
+
+# 2. Создайте plaintext конфиг:
+cat > alertmanager-email-plaintext.yaml <<'EOF'
 apiVersion: v1
 kind: Secret
 metadata:
-  name: alertmanager-telegram-secret
+  name: alertmanager-email-secret
   namespace: monitoring
 type: Opaque
 stringData:
   alertmanager.yaml: |
     global:
       resolve_timeout: 5m
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'your-email@gmail.com'
+      smtp_auth_username: 'your-email@gmail.com'
+      smtp_auth_password: 'xxxx xxxx xxxx xxxx'
+      smtp_require_tls: true
     route:
-      receiver: telegram
+      receiver: email
       group_by: [alertname]
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 4h
     receivers:
-      - name: telegram
-        telegram_configs:
-          - bot_token: "ВАШ_ТОКЕН_БОТА"
-            chat_id: ВАШ_CHAT_ID
-            parse_mode: HTML
+      - name: email
+        email_configs:
+          - to: 'alerts@example.com'
+            send_resolved: true
     inhibit_rules:
       - source_matchers:
           - alertname =~ "KubeNodeUnreachable|KubeNodeNotReady|KubeletDown"
         target_matchers:
           - alertname =~ "UniversityMaterialsAPI.*"
 EOF
+
+# 3. Запечатать:
+kubeseal --cert cert.pem --format yaml < alertmanager-email-plaintext.yaml > k3s/sealed-secrets/alertmanager-email-sealed-secret.yaml
+rm -f alertmanager-email-plaintext.yaml cert.pem
 ```
 
-### Запечатать:
-
-```bash
-# Снова извлеките cert.pem из мастер-ключа (см. пункт 2)
-kubeseal --cert cert.pem --format yaml < alertmanager-telegram-plaintext.yaml > k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml
-rm -f alertmanager-telegram-plaintext.yaml cert.pem
-```
-
-Без файла `k3s/sealed-secrets/alertmanager-telegram-sealed-secret.yaml` роль `monitoring` остановится с подсказкой.
+Без файла `k3s/sealed-secrets/alertmanager-email-sealed-secret.yaml` роль `monitoring` остановится с подсказкой.
 
 ---
 
@@ -123,15 +143,15 @@ rm -f alertmanager-telegram-plaintext.yaml cert.pem
 
 ```bash
 # 1. Секрет расшифровался
-kubectl --kubeconfig kubeconfig -n monitoring get secret alertmanager-telegram-secret
+kubectl --kubeconfig kubeconfig -n monitoring get secret alertmanager-email-secret
 
 # 2. Алертменеджер получил конфиг
 kubectl --kubeconfig kubeconfig -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 9093:9093
-# Откройте http://localhost:9093 → Alerts
+# Откройте http://localhost:9093 → Alerts → проверьте receiver "email"
 
 # 3. Тест алерта: остановите API на 2+ минуты
 kubectl --kubeconfig kubeconfig -n default scale deployment materials-api-primary --replicas=0
-# Через ~2 минуты алерт станет firing, уйдёт в Telegram
+# Через ~2 минуты алерт станет firing, уйдёт на Email
 # Вернуть: kubectl --kubeconfig kubeconfig -n default scale deployment materials-api-primary --replicas=1
 ```
 
@@ -143,7 +163,7 @@ kubectl --kubeconfig kubeconfig -n default scale deployment materials-api-primar
 |------|------------|
 | `master-key.yaml` | Мастер-ключ контроллера Sealed Secrets (получен с кластера) |
 | `monitoring-sealed-secret.yaml` | Пароль админа Grafana |
-| `alertmanager-telegram-sealed-secret.yaml` | Конфиг Alertmanager с токеном Telegram-бота |
+| `alertmanager-email-sealed-secret.yaml` | Конфиг Alertmanager для Email (Gmail SMTP) |
 | `materials-api-sealed-secret.yaml` | Уже в репо — секрет приложения (Яндекс.Диск) |
 
 Все `*plaintext*.yaml` и `cert.pem` — **только локально, в git не коммитить**.
