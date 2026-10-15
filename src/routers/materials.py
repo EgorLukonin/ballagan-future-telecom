@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from src.config import settings
-from src.logging import get_logger
+from src.app_logging import get_logger
 from src.schemas import ErrorResponse, MaterialListResponse
 from src.services import get_materials
 
