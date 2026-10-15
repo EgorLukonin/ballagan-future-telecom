@@ -38,7 +38,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(up{job=~\"api-service-.*\"})",
+              "expr": "sum(up{job=~\"materials-api/api-service-.*\"})",
               "legendFormat": "online",
               "refId": "A"
             }
@@ -78,7 +78,7 @@ data:
           },
           "targets": [
             {
-              "expr": "(sli:availability:ratio30d - 0.995) / 0.005 * 100",
+              "expr": "sli:error_budget_remaining:ratio15d * 100",
               "legendFormat": "бюджет, %",
               "refId": "A"
             }
@@ -119,7 +119,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/api-service-.*\"}[5m]))",
               "legendFormat": "requests/s",
               "refId": "A"
             }
@@ -145,7 +145,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\",status=~\"5..\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/api-service-.*\",status=~\"5..\"}[5m]))",
               "legendFormat": "5xx/s",
               "refId": "A"
             }
@@ -171,7 +171,7 @@ data:
           },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"api-service-.*\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"materials-api/api-service-.*\"}[5m])) by (le))",
               "legendFormat": "p95",
               "refId": "A"
             }
@@ -197,7 +197,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{job=~\"api-service-.*\"}[5m])) by (status)",
+              "expr": "sum(rate(http_requests_total{job=~\"materials-api/api-service-.*\"}[5m])) by (status)",
               "legendFormat": "{{ status }}",
               "refId": "A"
             }

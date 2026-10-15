@@ -8,24 +8,28 @@ spec:
   groups:
     - name: materials-api-sli
       rules:
-        - record: sli:http_requests:rate30d
-          expr: sum(rate(http_requests_total{job=~"api-service-.*"}[30d]))
-        - record: sli:http_errors_5xx:rate30d
-          expr: sum(rate(http_requests_total{job=~"api-service-.*", status=~"5.."}[30d]))
-        - record: sli:availability:ratio30d
-          expr: 1 - (sli:http_errors_5xx:rate30d / clamp_min(sli:http_requests:rate30d, 1))
-        - record: sli:error_rate:ratio30d
-          expr: sli:http_errors_5xx:rate30d / clamp_min(sli:http_requests:rate30d, 1)
+        - record: sli:http_requests:rate15d
+          expr: sum(rate(http_requests_total{job=~"materials-api/api-service-.*"}[15d]))
+        - record: sli:http_errors_5xx:rate15d
+          expr: sum(rate(http_requests_total{job=~"materials-api/api-service-.*", status=~"5.."}[15d]))
+        - record: sli:availability:ratio15d
+          expr: 1 - (sli:http_errors_5xx:rate15d / clamp_min(sli:http_requests:rate15d, 1))
+        - record: sli:error_rate:ratio15d
+          expr: sli:http_errors_5xx:rate15d / clamp_min(sli:http_requests:rate15d, 1)
         - record: sli:error_rate:ratio1h
-          expr: sum(rate(http_requests_total{job=~"api-service-.*", status=~"5.."}[1h])) / clamp_min(sum(rate(http_requests_total{job=~"api-service-.*"}[1h])), 1)
+          expr: sum(rate(http_requests_total{job=~"materials-api/api-service-.*", status=~"5.."}[1h])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*"}[1h])), 1)
         - record: sli:error_rate:ratio6h
-          expr: sum(rate(http_requests_total{job=~"api-service-.*", status=~"5.."}[6h])) / clamp_min(sum(rate(http_requests_total{job=~"api-service-.*"}[6h])), 1)
-        - record: sli:latency_p95:seconds30d
-          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"api-service-.*"}[30d])) by (le))
-        - record: sli:latency_p99:seconds30d
-          expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~"api-service-.*"}[30d])) by (le))
-        - record: sli:materials_list_success:ratio30d
-          expr: sum(rate(http_requests_total{job=~"api-service-.*", handler=~".*materials/list", status=~"2.."}[30d])) / clamp_min(sum(rate(http_requests_total{job=~"api-service-.*", handler=~".*materials/list", status=~"2..|5.."}[30d])), 1)
+          expr: sum(rate(http_requests_total{job=~"materials-api/api-service-.*", status=~"5.."}[6h])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*"}[6h])), 1)
+        - record: sli:latency_p95:seconds15d
+          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"materials-api/api-service-.*"}[15d])) by (le))
+        - record: sli:latency_p99:seconds15d
+          expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~"materials-api/api-service-.*"}[15d])) by (le))
+        - record: sli:uptime:ratio15d
+          expr: avg_over_time(up{job=~"materials-api/api-service-.*"}[15d])
+        - record: sli:materials_list_success:ratio15d
+          expr: sum(rate(http_requests_total{job=~"materials-api/api-service-.*", handler=~".*materials/list", status=~"2.."}[15d])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*", handler=~".*materials/list", status=~"2..|5.."}[15d])), 1)
+        - record: sli:error_budget_remaining:ratio15d
+          expr: (sli:availability:ratio15d - 0.995) / 0.005
     - name: materials-api-burn-rate
       rules:
         - alert: UniversityMaterialsAPIErrorBudgetBurnFast
@@ -45,10 +49,34 @@ spec:
             summary: "Медленное сгорание error budget (slow burn)"
             description: "Доля ошибок 5xx за последние 6 часов превышает предупреждающий порог."
         - alert: UniversityMaterialsAPILatencySLO
-          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"api-service-.*"}[30m])) by (le)) > 0.5
+          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"materials-api/api-service-.*"}[30m])) by (le)) > 0.5
           for: 15m
           labels:
             severity: warning
           annotations:
             summary: "Нарушение SLO по латентности (p95 > 500 мс)"
             description: "p95 латентности за 30 минут превышает 500 мс."
+        - alert: UniversityMaterialsAPILatencyP99SLO
+          expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~"materials-api/api-service-.*"}[30m])) by (le)) > 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Нарушение SLO по латентности (p99 > 1 с)"
+            description: "p99 латентности за 30 минут превышает 1 секунду."
+        - alert: UniversityMaterialsAPIUptimeSLO
+          expr: avg_over_time(up{job=~"materials-api/api-service-.*"}[15d]) < 0.999
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Нарушение SLO по аптайму (< 99.9%)"
+            description: "Аптайм за 15 дней ниже 99.9%."
+        - alert: UniversityMaterialsAPIBusinessSLISLO
+          expr: sli:materials_list_success:ratio15d < 0.999
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Нарушение бизнес-SLO (успешные выдачи materials/list < 99.9%)"
+            description: "Доля успешных выдач списка материалов за 15 дней ниже 99.9%."

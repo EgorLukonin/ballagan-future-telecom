@@ -8,26 +8,26 @@
 | Термин | Определение |
 |---|---|
 | **SLI** (Service Level Indicator) | Измеримый показатель качества сервиса, вычисляется по метрикам Prometheus |
-| **SLO** (Service Level Objective) | Целевое значение SLI, которое сервис обязуется поддерживать (окно оценки — 30 дней) |
+| **SLO** (Service Level Objective) | Целевое значение SLI, которое сервис обязуется поддерживать (окно оценки — 15 дней) |
 | **SLA** (Service Level Agreement) | Соглашение с потребителем: уровни, время реакции, действия при нарушении |
 | **Error budget** | Допустимая «неудача» = 1 − SLO. Пока бюджет не исчерпан — можно рисковать (релизы); исчерпан — релизы замораживаются |
 
 ## 2. Источники метрик
 
 - Сервис экспонирует метрики на `/metrics` через `prometheus-fastapi-instrumentator`
-- Сбор: ServiceMonitor `materials-api` (namespace `default`), job `default/materials-api/http`
+- Сбор: ServiceMonitor `materials-api` (namespace `materials-api`), job `materials-api/api-service-*`
 - Основные метрики: `http_requests_total` (лейблы `status`, `method`, `handler`),
   `http_request_duration_seconds_bucket` (гистограмма), `up`
 
-## 3. SLI — индикаторы и формулы (окно 30 дней)
+## 3. SLI — индикаторы и формулы (окно 15 дней)
 
 | SLI | Формула (PromQL) |
 |---|---|
-| **Доступность** — доля успешных (не-5xx) запросов | `1 - (sum(rate(http_requests_total{job=~"default/materials-api/.*",status=~"5.."}[30d])) / clamp_min(sum(rate(http_requests_total{job=~"default/materials-api/.*"}[30d])), 1))` |
-| **Латентность p95 / p99** | `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"default/materials-api/.*"}[30d])) by (le))` (аналогично 0.99) |
-| **Ошибки** — доля 5xx | `sum(rate(http_requests_total{job=~"default/materials-api/.*",status=~"5.."}[30d])) / clamp_min(sum(rate(http_requests_total{job=~"default/materials-api/.*"}[30d])), 1)` |
-| **Аптайм** — доля времени с живыми экземплярами | `avg_over_time(up{job=~"default/materials-api/.*"}[30d])` |
-| **Бизнес: успешные выдачи списка материалов** — доля 2xx от 2xx+5xx на `/api/v1/materials/list` | `sum(rate(http_requests_total{job=~"default/materials-api/.*",handler=~".*materials/list",status=~"2.."}[30d])) / clamp_min(sum(rate(http_requests_total{job=~"default/materials-api/.*",handler=~".*materials/list",status=~"2..|5.."}[30d])), 1)` |
+| **Доступность** — доля успешных (не-5xx) запросов | `1 - (sum(rate(http_requests_total{job=~"materials-api/api-service-.*",status=~"5.."}[15d])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*"}[15d])), 1))` |
+| **Латентность p95 / p99** | `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"materials-api/api-service-.*"}[15d])) by (le))` (аналогично 0.99) |
+| **Ошибки** — доля 5xx | `sum(rate(http_requests_total{job=~"materials-api/api-service-.*",status=~"5.."}[15d])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*"}[15d])), 1)` |
+| **Аптайм** — доля времени с живыми экземплярами | `avg_over_time(up{job=~"materials-api/api-service-.*"}[15d])` |
+| **Бизнес: успешные выдачи списка материалов** — доля 2xx от 2xx+5xx на `/api/v1/materials/list` | `sum(rate(http_requests_total{job=~"materials-api/api-service-.*",handler=~".*materials/list",status=~"2.."}[15d])) / clamp_min(sum(rate(http_requests_total{job=~"materials-api/api-service-.*",handler=~".*materials/list",status=~"2..|5.."}[15d])), 1)` |
 
 Примечание: клиентские ошибки 4xx (некорректная ссылка, ошибки валидации)
 исключаются из расчёта бизнес-SLI — это не дефект сервиса.
@@ -36,15 +36,15 @@
 
 | Показатель | Целевое значение (SLO) | Окно оценки |
 |---|---|---|
-| Доступность | **≥ 99.5%** | 30 дней |
-| Латентность | **p95 ≤ 500 мс**, p99 ≤ 1 с | 30 дней |
-| Ошибки (5xx) | **< 1%** | 30 дней |
-| Аптайм | **≥ 99.9%** | 30 дней |
-| Успешные выдачи списка материалов | **≥ 99.9%** | 30 дней |
+| Доступность | **≥ 99.5%** | 15 дней |
+| Латентность | **p95 ≤ 500 мс**, p99 ≤ 1 с | 15 дней |
+| Ошибки (5xx) | **< 1%** | 15 дней |
+| Аптайм | **≥ 99.9%** | 15 дней |
+| Успешные выдачи списка материалов | **≥ 99.9%** | 15 дней |
 
 ## 5. Error budget
 
-Доступность 99.5% ⇒ error budget = 0.5% времени/запросов (≈ 3.6 часа простоя в месяц).
+Доступность 99.5% ⇒ error budget = 0.5% времени/запросов (≈ 1.8 часа простоя за 15 дней).
 
 Пороги burn-rate (SRE multi-window):
 
