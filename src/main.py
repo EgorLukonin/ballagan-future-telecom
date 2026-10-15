@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import settings
-from src.logging import RequestLoggingMiddleware, configure_logging
+from src.app_logging import RequestLoggingMiddleware, configure_logging
 from src.routers import materials
 
 import uvicorn

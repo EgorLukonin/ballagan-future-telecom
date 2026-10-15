@@ -3,14 +3,14 @@ replicaCount: 2
 namespace: "materials-api"
 
 image:
-  repository: ballagan-telecom-api
-  pullPolicy: Never
-  tag: "{{ .Chart.AppVersion }}"
+  repository: guber45/ballagan-telecom-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
 
 primary:
   version: v1
   replicaCount: 1
-  tag: "{{ .Chart.AppVersion }}"
+  tag: "latest"
 
 canary:
   enabled: true

@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 import httpx
 
 from src.config import settings
-from src.logging import get_logger
+from src.app_logging import get_logger
 
 logger = get_logger(__name__)
 

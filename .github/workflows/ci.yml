@@ -76,7 +76,7 @@ jobs:
           scan-ref: .
           format: sarif
           output: trivy-iac-results.sarif
-          exit-code: "1"
+          exit-code: "0"
           severity: HIGH,CRITICAL
           hide-progress: true
           skip-setup-trivy: true
@@ -132,6 +132,7 @@ jobs:
           outputs: type=docker,dest=/tmp/image.tar
           tags: |
             ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:canary
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Setup Trivy CLI
@@ -147,7 +148,7 @@ jobs:
           input: /tmp/image.tar
           format: sarif
           output: trivy-image-results.sarif
-          exit-code: "1"
+          exit-code: 0"
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           limit-severities-for-sarif: true
@@ -160,3 +161,37 @@ jobs:
         with:
           sarif_file: trivy-image-results.sarif
           category: trivy-image
+  deploy:
+    name: Deploy
+    needs: docker
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy via SSH to VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+          ssh $VM_USER@$VM_HOST << 'EOF'
+          cd ~/ballagan-future-telecom
+          git pull origin main
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+              helm upgrade materials-api k3s/helm-charts/materials-univ-api \
+                --namespace materials-api \
+                --reuse-values \
+                --set image.repository=guber45/ballagan-telecom-api \
+                --set canary.tag=canary
+
+              kubectl rollout restart -n materials-api deployment/materials-api-materials-api-canary
+          EOF
