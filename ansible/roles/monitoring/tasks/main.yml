@@ -124,6 +124,7 @@
     --timeout=300s
   environment:
     KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
+  changed_when: false
   delegate_to: localhost
   run_once: true
   become: false
