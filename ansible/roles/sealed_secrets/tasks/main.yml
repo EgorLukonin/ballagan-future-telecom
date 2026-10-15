@@ -46,6 +46,17 @@
   run_once: true
   become: false
 
+- name: Создать namespace materials-api
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: materials-api
+    state: present
+    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
+  delegate_to: localhost
+  run_once: true
+  become: false
+
 - name: Применить запечатанный секрет приложения
   kubernetes.core.k8s:
     state: present

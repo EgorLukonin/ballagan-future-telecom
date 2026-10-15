@@ -112,22 +112,18 @@
     wait_condition:
       type: Ready
       status: "True"
-    wait_timeout: 180
+    wait_timeout: 500
   delegate_to: localhost
   run_once: true
   become: false
 
 - name: Ждать готовности Alertmanager
-  kubernetes.core.k8s_info:
-    kind: StatefulSet
-    name: alertmanager-kube-prometheus-stack-alertmanager
-    namespace: "{{ monitoring_namespace }}"
-    kubeconfig: "{{ playbook_dir }}/../../kubeconfig"
-    wait: true
-    wait_condition:
-      type: Ready
-      status: "True"
-    wait_timeout: 180
+  ansible.builtin.command: >
+    kubectl rollout status statefulset alertmanager-kube-prometheus-stack-alertmanager
+    --namespace="{{ monitoring_namespace }}"
+    --timeout=300s
+  environment:
+    KUBECONFIG: "{{ playbook_dir }}/../../kubeconfig"
   delegate_to: localhost
   run_once: true
   become: false

@@ -6,10 +6,6 @@ resource "random_password" "ssh_key_suffix" {
 resource "tls_private_key" "ssh" {
   algorithm = "RSA"
   rsa_bits  = 4096
-
-  keepers = {
-    key_suffix = random_password.ssh_key_suffix.result
-  }
 }
 
 resource "openstack_compute_keypair_v2" "generated_key" {
@@ -83,10 +79,9 @@ resource "openstack_compute_instance_v2" "vm" {
     source_type           = "image"
     destination_type      = "volume"
     volume_size           = var.volume_size
-    volume_type           = var.volume_type
+    volume_type           = "basic.ru-9a"
     boot_index            = 0
     delete_on_termination = true
-    destination_type      = "volume"
   }
 
   network {
