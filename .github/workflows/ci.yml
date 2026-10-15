@@ -193,5 +193,5 @@ jobs:
                 --set image.repository=guber45/ballagan-telecom-api \
                 --set canary.tag=canary
 
-              kubectl rollout restart -n materials-api deployment/materials-univ-api-canary
+              kubectl rollout restart -n materials-api deployment/materials-api-materials-api-canary
           EOF
