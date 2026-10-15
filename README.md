@@ -185,15 +185,97 @@ make up
 
 ---
 
-## Использование LLM
-
-*Раздел заготовлен. Описание использования LLM-инструментов (GitHub Copilot, ChatGPT, Claude и др.) для генерации кода, конфигураций, тестов, документации будет добавлено командой.*
-
----
-
 ## Troubleshooting
 
-*Раздел заготовлен. Таблица типичных проблем и решений будет заполнена командой по итогам эксплуатации.*
+### Инфраструктура (Terraform / OpenStack / Selectel)
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| `terraform apply` падает с `Error creating server` | Квоты исчерпаны, нехватка ресурсов в проекте Selectel | Проверить квоты в панели Selectel → Project → Quotas. Увеличить лимиты на vCPU, RAM, Volumes, Floating IPs. |
+| `Error: Error applying plan: 1 error occurred: * Provider produced inconsistent result` | Кеш Terraform устарел | `make tf-init` (переинициализация провайдеров), затем `make tf-plan` и `make tf-apply`. |
+| VM не получает Floating IP | Порт не привязан к сети `ext-net` или нет свободных IP | Проверить в Terraform: `network { name = "ext-net" }` у instance. Освободить/выделить Floating IP в панели Selectel. |
+| `ssh: connect to host ... port 22: Connection refused` | VM ещё не загрузилась, cloud-init не завершился, UFW блокирует | Подождать 2–3 минуты после создания VM. Проверить `make status` — узел должен быть `Ready`. UFW настраивается ролью `base` Ansible. |
+
+### Ansible / Конфигурация узла
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| `make inventory` не создаёт `ansible/inventory.ini` | Terraform output пустой (ресурсы не созданы) | Выполнить `make tf-apply` до конца. Проверить `terraform output -json`. |
+| Ansible: `Failed to connect to the host via ssh` | Неправильный `ansible_user` или ключ SSH | Убедиться, что в `ansible.cfg` или inventory указан верный пользователь (обычно `ubuntu` для Ubuntu Cloud Images). Ключ должен быть в `~/.ssh/id_rsa` или задан `ansible_ssh_private_key_file`. |
+| Роль `k3s` падает на `k3s service failed to start` | Недостаточно памяти/CPU на VM (минимум 4 GB RAM, 2 vCPU) | Использовать флейвор с ≥4 GB RAM. Проверить `journalctl -u k3s -f` на узле. |
+| `ansible-apps` падает на `Helm release failed` | kubeconfig неверный, кластер не Ready | Проверить `make status` — все узлы `Ready`. `export KUBECONFIG=$(pwd)/kubeconfig`. Перезапустить `make ansible-apps`. |
+
+### Kubernetes (k3s) / Приложение
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| Поды `materials-api-*` в `ImagePullBackOff` / `ErrImagePull` | Образ не доставлен на VM или не импортирован в containerd | Выполнить `make build-image && make push-image`. Проверить на VM: `ctr -n k8s.io images ls | grep materials-api`. |
+| Поды в `CrashLoopBackOff` | Ошибка запуска приложения (конфиг, секреты, зависимости) | `make app-logs` — посмотреть логи. Частые причины: неверные Sealed Secrets, недоступен Yandex Disk API, ошибка миграций. |
+| `Service materials-api` не имеет Endpoints | Селектор Service не совпадает с labels подов | Проверить `kubectl -n default get svc materials-api -o yaml` и `kubectl -n default get pods -l app=materials-api --show-labels`. |
+| Ingress возвращает 502 / 404 | Traefik/ingress-nginx не видит Service, неверный `host` в Ingress | Проверить `kubectl -n default get ingress`. Host в Ingress должен совпадать с DNS/IP. `make verify` проверяет `/health` через ingress. |
+
+### Sealed Secrets
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| `kubeseal: error: secrets "xxx" not found` | Секрет не создан в кластере перед sealing | Создать обычный Secret в целевом namespace, затем запечатать: `kubectl create secret generic ... --dry-run=client -o yaml | kubeseal ...` |
+| Поды не стартуют: `InvalidSecret: secret data must be base64 encoded` | Неправильный формат при создании SealedSecret | Значения в `stringData` (не `data`) при создании исходного Secret. `kubeseal` сам заэнкодит. |
+| После переустановки кластера Sealed Secrets не расшифровываются | Мастер-ключ контроллера изменился (не сохранён) | Всегда сохранять `master-key.yaml` из предыдущего кластера (`kubectl get secret -n kube-system -l sealedsecrets.bitnami.com/sealed-secrets-key -o yaml > master-key.yaml`). При переустановке кластера восстанавливать его до установки приложений. |
+
+### Мониторинг (Prometheus / Grafana / Alertmanager)
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| Grafana: "Invalid username or password" | Пароль админа не совпадает с запечатанным секретом | Проверить `monitoring-sealed-secret.yaml` — пароль должен быть запечатан для namespace `monitoring`, key `admin-password`. Пересоздать секрет и перезапустить `grafana` под. |
+| Prometheus не видит targets `materials-api` | ServiceMonitor не создан / неверный namespace / label mismatch | Проверить `kubectl -n monitoring get servicemonitor`. `matchLabels` в ServiceMonitor должен совпадать с labels Service (`app: materials-api`). |
+| Алерты не уходят в Telegram | Неверный токен бота / chat_id в `alertmanager-telegram-sealed-secret.yaml` | Проверить секрет: `kubectl -n monitoring get secret alertmanager-telegram-secret -o yaml`. Токен бота и `chat_id` в base64. Логи Alertmanager: `kubectl -n monitoring logs -l app=alertmanager`. |
+| Дашборд "University Materials API" пустой | Метрики не собираются / неверные recording rules | Проверить в Prometheus UI: `up{job=~"default/materials-api/.*"}`. Должно вернуть 1 для primary и canary. Проверить `sli-rules.yaml` — recording rules должны создавать `sli:*` метрики. |
+
+### CI/CD (GitHub Actions)
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| Job `trivy-iac` / `trivy-image` падает на HIGH/CRITICAL | Найдены уязвимости или misconfig в коде/образе | Открыть GitHub → Security → Code scanning → просмотреть детали. Исправить Dockerfile, Terraform, Helm values. Ложные срабатывания добавить в `.trivyignore`. |
+| `docker/build-push-action` падает: `denied: requested access to the resource is denied` | Неверные `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` в GitHub Secrets | Проверить Secrets в репозитории. Токен должен иметь права на push. |
+| Пайплайн не запускается при push в main | Workflow файл не в `.github/workflows/` или неверный `on:` trigger | Проверить `.github/workflows/ci.yml` — `on: push: branches: [main]`. Файл должен быть в корне репозитория. |
+
+### Сеть / DNS / Внешний доступ
+
+| Проблема | Причина | Решение |
+|---|---|---|
+| API недоступен по `http://<IP>/api/...` | Ingress не настроен, неверный host, Traefik не слушает 80/443 | Проверить `kubectl -n kube-system get svc traefik` (или ingress-nginx). Порты 80/443 должны быть открыты в Security Groups Selectel + UFW на VM. |
+| `curl` к API возвращает 504 Gateway Timeout | Апстрим (FastAPI) не отвечает за 60с (timeout Traefik) | Увеличить `timeout` в Ingress/Traefik Middleware. Проверить производительность API — возможно, Yandex Disk API тормозит. |
+
+### Полезные команды диагностики
+
+```bash
+# Общее состояние
+make status              # terraform output + kubectl get nodes,pods -A
+make verify              # сквозная проверка /health, /metrics через ingress
+
+# Логи приложения
+make app-logs            # логи primary/canary подов
+kubectl -n default logs -l app=materials-api -f --tail=100
+
+# Логи инфраструктуры
+kubectl -n kube-system logs -l app=traefik -f
+kubectl -n monitoring logs -l app=prometheus -f
+kubectl -n monitoring logs -l app=alertmanager -f
+
+# Sealed Secrets
+kubectl get sealedsecrets -A
+kubectl -n default get secret materials-api-secret -o yaml
+
+# Метрики в Prometheus (через port-forward)
+make prometheus          # затем http://localhost:9090
+# Запросы:
+# up{job=~"default/materials-api/.*"}
+# rate(http_requests_total{job="materials-api"}[5m])
+# histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="materials-api"}[5m]))
+
+# Перезапуск приложения
+make rollout             # rolling restart deployments
+```
 
 ---
 
