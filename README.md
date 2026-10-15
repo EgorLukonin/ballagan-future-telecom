@@ -95,7 +95,7 @@ make up
 |------|------------|
 | `master-key.yaml` | Мастер-ключ контроллера Sealed Secrets (получить с кластера) |
 | `monitoring-sealed-secret.yaml` | Пароль админа Grafana (запечатать через kubeseal) |
-| `alertmanager-telegram-sealed-secret.yaml` | Конфиг Alertmanager с токеном Telegram-бота (запечатать через kubeseal) |
+| `alertmanager-email-sealed-secret.yaml` | Конфиг Alertmanager для Email (Gmail SMTP, запечатать скриптом) |
 | `materials-api-sealed-secret.yaml` | Уже в репо — секрет приложения (Яндекс.Диск) |
 
 ---
@@ -160,9 +160,9 @@ make up
 
 Проверка метрик: в Prometheus UI выполните `up{job=~"default/materials-api/.*"}` — должно вернуть экземпляры primary и canary.
 
-### Алертинг в Telegram
+### Алертинг на Email (Gmail)
 
-Алерты из Prometheus маршрутизируются в Alertmanager и уходят в Telegram-бот. Конфиг хранится в запечатанном секрете `alertmanager-telegram-secret`.
+Алерты из Prometheus маршрутизируются в Alertmanager и уходят на Email через Gmail SMTP. Конфиг хранится в запечатанном секрете `alertmanager-email-secret`.
 
 Алерты:
 - `UniversityMaterialsAPIDown` (critical) — экземпляр не отвечает более 2 минут
@@ -171,13 +171,18 @@ make up
 
 Логика: группировка по `alertname`, `group_interval 5m`, повтор `repeat_interval 4h`; ингибирование алертов приложения пока нода недоступна.
 
+Настройка Gmail App Password:
+1. Включите 2FA в Google Account
+2. Security → App passwords → "Mail" → сгенерируйте пароль
+3. Используйте скрипт: `python scripts/seal_alertmanager_email.py --smtp-user <EMAIL> --smtp-password <APP_PASSWORD> --from <EMAIL> --to <EMAIL>`
+
 ---
 
 ## Безопасность
 
 - **Trivy IaC scan** — сканирование конфигураций (terraform, ansible, helm, Dockerfile) на misconfig и секреты; падение на HIGH/CRITICAL; результаты в **GitHub → Security → Code scanning**.
 - **Trivy image scan** — сканирование Docker-образа после сборки; падение на HIGH/CRITICAL; результаты в **Security → Code scanning**.
-- **Sealed Secrets** — все конфиденциальные данные (пароль Grafana, токен Telegram-бота, секреты приложения) хранятся в git только в запечатанном виде. Мастер-ключ контроллера не в git.
+- **Sealed Secrets** — все конфиденциальные данные (пароль Grafana, Gmail App Password для Alertmanager, секреты приложения) хранятся в git только в запечатанном виде. Мастер-ключ контроллера не в git.
 - **Нет внешнего реестра** — образ доставляется на ВМ через scp и импортируется в containerd (`ctr images import`).
 - **UFW на VM** — роль `base` настраивает firewall.
 - **`.trivyignore`** — исключения для ложных срабатываний Trivy.
@@ -228,7 +233,7 @@ make up
 |---|---|---|
 | Grafana: "Invalid username or password" | Пароль админа не совпадает с запечатанным секретом | Проверить `monitoring-sealed-secret.yaml` — пароль должен быть запечатан для namespace `monitoring`, key `admin-password`. Пересоздать секрет и перезапустить `grafana` под. |
 | Prometheus не видит targets `materials-api` | ServiceMonitor не создан / неверный namespace / label mismatch | Проверить `kubectl -n monitoring get servicemonitor`. `matchLabels` в ServiceMonitor должен совпадать с labels Service (`app: materials-api`). |
-| Алерты не уходят в Telegram | Неверный токен бота / chat_id в `alertmanager-telegram-sealed-secret.yaml` | Проверить секрет: `kubectl -n monitoring get secret alertmanager-telegram-secret -o yaml`. Токен бота и `chat_id` в base64. Логи Alertmanager: `kubectl -n monitoring logs -l app=alertmanager`. |
+| Алерты не уходят на Email | Неверные SMTP настройки в `alertmanager-email-sealed-secret.yaml` | Проверить секрет: `kubectl -n monitoring get secret alertmanager-email-secret -o yaml`. SMTP user/password в base64. Логи Alertmanager: `kubectl -n monitoring logs -l app=alertmanager`. |
 | Дашборд "University Materials API" пустой | Метрики не собираются / неверные recording rules | Проверить в Prometheus UI: `up{job=~"default/materials-api/.*"}`. Должно вернуть 1 для primary и canary. Проверить `sli-rules.yaml` — recording rules должны создавать `sli:*` метрики. |
 
 ### CI/CD (GitHub Actions)

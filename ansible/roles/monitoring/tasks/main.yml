@@ -57,9 +57,9 @@
   ansible.builtin.fail:
     msg: >
       Файл {{ monitoring_alertmanager_secret_path }} не найден.
-      Запечатайте секрет alertmanager-telegram-secret (ключ alertmanager.yaml)
-      командой kubeseal --cert cert.pem --format yaml < plaintext.yaml > alertmanager-telegram-sealed-secret.yaml.
-      Инструкция: см. раздел «Алертинг в Telegram» в README.
+      Запечатайте секрет alertmanager-email-secret (ключ alertmanager.yaml)
+      скриптом: python scripts/seal_alertmanager_email.py --smtp-user <EMAIL> --smtp-password <APP_PASSWORD> --from <EMAIL> --to <EMAIL>
+      Инструкция: см. раздел «Алертинг на Email» в README.
   when: not monitoring_alertmanager_secret_stat.stat.exists
   run_once: true
 
