@@ -1,5 +1,4 @@
-# 1. Этап сборки (builder) остается прежним
-FROM ghcr.io/astral-sh/uv:python3.11-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim AS builder
 
 WORKDIR /src
 
@@ -12,14 +11,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv lock && \
     uv sync --frozen --no-install-project --no-dev
 
+FROM python:3.12-slim
 
-FROM python:3.11-alpine
-
-
-RUN addgroup -g 10001 appgroup && adduser -u 10001 -G appgroup -h /home/appuser -s /bin/sh -D appuser
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
 WORKDIR /src
-
 
 COPY --from=builder /src/.venv /src/.venv
 
@@ -27,6 +23,7 @@ COPY . .
 
 ENV PATH="/src/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
+
 ENV PYTHONPATH="/src"
 
 EXPOSE 8000
@@ -40,3 +37,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 CMD ["python", "src/main.py"]
+
+
