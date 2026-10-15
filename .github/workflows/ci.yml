@@ -186,12 +186,12 @@ jobs:
           ssh $VM_USER@$VM_HOST << 'EOF'
           cd ~/ballagan-future-telecom
           git pull origin main
-            export KUBECONFIG=kubeconfig
-            helm upgrade materials-api k3s/helm-charts/materials-univ-api \
-              --namespace materials-api \
-              --reuse-values \
-              --set image.repository=guber45/ballagan-telecom-api \
-              --set canary.tag=canary
+            export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+              helm upgrade materials-api k3s/helm-charts/materials-univ-api \
+                --namespace materials-api \
+                --reuse-values \
+                --set image.repository=guber45/ballagan-telecom-api \
+                --set canary.tag=canary
 
-            kubectl rollout restart -n materials-api deployment/materials-univ-api-canary
+              kubectl rollout restart -n materials-api deployment/materials-univ-api-canary
           EOF
