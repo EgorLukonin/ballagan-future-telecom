@@ -17,7 +17,7 @@ down: tf-destroy clean ## Удалить инфраструктуру (terraform
 
 clean: ## Удалить локальные артефакты (без terraform destroy)
 	rm -f kubeconfig ballagan-images.tar ansible/inventory.ini
-	rm -f terraform/id_rsa terraform/id_rsa.pub terraform/hosts.ini
+	rm -f terraform/hosts.ini
 
 prereqs: ## Проверить, что все нужные инструменты установлены
 	@fail=0; \

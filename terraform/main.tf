@@ -1,22 +1,6 @@
-resource "random_password" "ssh_key_suffix" {
-  length  = 8
-  special = false
-}
-
-resource "tls_private_key" "ssh" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
 resource "openstack_compute_keypair_v2" "generated_key" {
   name       = var.ssh_key_name
-  public_key = tls_private_key.ssh.public_key_openssh
-}
-
-resource "local_file" "private_key" {
-  content         = tls_private_key.ssh.private_key_pem
-  filename        = "${path.module}/id_rsa"
-  file_permission = "0600"
+  public_key = file("${path.module}/id_rsa.pub")
 }
 
 resource "openstack_networking_network_v2" "net" {
