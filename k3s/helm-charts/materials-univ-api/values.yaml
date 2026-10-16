@@ -17,7 +17,7 @@ canary:
   version: v2
   replicaCount: 1
   weight: 10
-  tag: "v1.2.0-rc1" 
+  tag: "v1.2.0-rc1"
 
 
 service:
