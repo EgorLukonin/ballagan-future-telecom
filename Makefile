@@ -42,6 +42,9 @@ ansible-apps: inventory ## Установка приложений (sealed-secre
 	cd ansible && ansible-playbook -i inventory.ini playbooks/site.yml --tags apps
 
 tf-init: ## terraform init
+	@if [ ! -f ~/.terraformrc ]; then \
+		printf 'provider_installation {\n  network_mirror {\n    url = "https://terraform-mirror.yandexcloud.net/"\n    include = ["registry.terraform.io/*/*"]\n  }\n  direct {\n    exclude = ["registry.terraform.io/*/*"]\n  }\n}\n' > ~/.terraformrc; \
+	fi
 	cd terraform && terraform init
 
 tf-plan: ## terraform plan (без применения)
