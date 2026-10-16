@@ -57,9 +57,9 @@ tf-destroy: ## terraform destroy -auto-approve
 	cd terraform && terraform destroy -auto-approve
 
 build-image: ## Собрать Docker-образ (latest + canary) и упаковать в tar
-	docker build -t ballagan-telecom-api:latest .
-	docker tag ballagan-telecom-api:latest ballagan-telecom-api:canary
-	docker save ballagan-telecom-api:latest ballagan-telecom-api:canary -o ballagan-images.tar
+	docker build -t docker.io/guber45/ballagan-telecom-api:latest .
+	docker tag docker.io/guber45/ballagan-telecom-api:latest docker.io/guber45/ballagan-telecom-api:canary
+	docker save docker.io/guber45/ballagan-telecom-api:latest docker.io/guber45/ballagan-telecom-api:canary -o ballagan-images.tar
 
 push-image: build-image ## Доставить образ на сервер и импортировать в containerd
 	@VM_IP=$$(cd terraform && terraform output -raw server_ip); \
