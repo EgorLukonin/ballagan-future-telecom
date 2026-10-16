@@ -3,21 +3,21 @@ replicaCount: 2
 namespace: "materials-api"
 
 image:
-  repository: guber45/ballagan-telecom-api
+  repository: docker.io/guber45/ballagan-telecom-api
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "v1.1.0"
 
 primary:
   version: v1
   replicaCount: 1
-  tag: "latest"
+  tag: "v1.1.0"
 
 canary:
   enabled: true
   version: v2
   replicaCount: 1
   weight: 10
-  tag: "canary"
+  tag: "v1.2.0-rc1" 
 
 
 service:
