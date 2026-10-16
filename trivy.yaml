@@ -1,0 +1,5 @@
+# trivy.yaml
+policies:
+  allowed-registries:
+    - docker.io
+    - index.docker.io
