@@ -73,11 +73,14 @@
   become: false
 
 - name: Установить CRD
-  ansible.builtin.shell: |
-    kubectl --kubeconfig={{ playbook_dir }}/../../kubeconfig apply --server-side --force-conflicts -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.74.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+  ansible.builtin.shell: >-
+    kubectl --kubeconfig={{ playbook_dir }}/../../kubeconfig 
+    apply --server-side --force-conflicts 
+    -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.74.0/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
   delegate_to: localhost
   run_once: true
   become: false
+  changed_when: true
 
 - name: Установить kube-prometheus-stack
   kubernetes.core.helm:
