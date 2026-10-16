@@ -5,20 +5,19 @@ namespace: "materials-api"
 image:
   repository: docker.io/guber45/ballagan-telecom-api
   pullPolicy: IfNotPresent
-  tag: "v1.1.0"
+  tag: "latest"
 
 primary:
   version: v1
   replicaCount: 1
-  tag: "v1.1.0"
+  tag: "latest"
 
 canary:
   enabled: true
   version: v2
   replicaCount: 1
   weight: 10
-  tag: "v1.2.0-rc1"
-
+  tag: "canary"
 
 service:
   port: 80
