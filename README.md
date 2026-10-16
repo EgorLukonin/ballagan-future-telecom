@@ -38,21 +38,17 @@
 
 ![Architecture](docs/architecture/architecture.svg)
 
-*Поток запросов: Пользователь → Traefik Ingress Controller → FastAPI Microservice (materials-univ-api) → Yandex Disk Public API.  
-Кластер k3s: содержит микросервис, Ingress, систему мониторинга (Prometheus / Grafana) и оператор Sealed Secrets.  
-Автоматизация: инфраструктура поднимается через Terraform и настраивается с помощью Ansible Playbooks. CI/CD пайплайн на базе GitHub Actions запускает линтеры, тесты и сканирование безопасности.*
-
 ## Использованные инструменты
 
 | Категория | Инструменты и версии |
 |-----------|---------------------|
-| **Backend & API** | Python 3.12, FastAPI, Pydantic v2, Uvicorn, httpx, uv |
+| **Backend & API** | Python ≥ 3.12, FastAPI, Pydantic v2, Uvicorn, httpx, uv |
 | **Тестирование и качество** | pytest, pytest-asyncio, black, flake8, yamllint |
-| **Infrastructure as Code (IaC)** | Terraform ≥ 1.6, OpenStack / Selectel Provider, Ansible (community.general) |
-| **Оркестрация и контейнеризация** | Kubernetes (k3s v1.28+), Docker / Buildx, Helm, ingress-nginx |
-| **CI/CD & Безопасность** | GitHub Actions, Trivy 0.75 (IaC + image scan), Sealed Secrets, kubeseal |
+| **Infrastructure as Code (IaC)** | Terraform ≥ 1.6, OpenStack / Selectel Provider, Ansible ≥ 2.15 |
+| **Оркестрация и контейнеризация** | Kubernetes (k3s v1.28+), Docker ≥ 24.0 / Buildx, Helm ≥ 3.14, ingress-nginx, kubectl ≥ 1.28 |
+| **CI/CD & Безопасность** | GitHub Actions, Trivy 0.75 (IaC + image scan), Sealed Secrets, kubeseal ≥ 0.25 |
 | **Мониторинг & Аналитика** | Prometheus, Grafana, Alertmanager (kube-prometheus-stack 92.3.0), kube-prometheus-stack |
-| **Управление секретами** | Sealed Secrets (Bitnami), kubeseal |
+| **Управление секретами** | Sealed Secrets, kubeseal |
 | **Другое** | Make, ssh/scp, ctr (containerd) |
 
 ## Как запустить
@@ -65,21 +61,20 @@ cd ballagan-future-telecom
 make up
 ```
 
-В конце вывода появятся URL API и Grafana.
 
 ---
 
 ### Предварительные требования (управляющая машина)
 
 - Linux/macOS с `make`, `ssh`, `scp`
-- Terraform ≥ 1.6, Ansible + коллекция `community.general` (`ansible-galaxy collection install community.general`)
-- Docker (для `build-image`), Helm, kubectl (для ролей apps — выполняются на localhost)
-- Переменные окружения для Terraform:
-  - `TF_VAR_selectel_username`
-  - `TF_VAR_selectel_password`
-  - `TF_VAR_selectel_account`
-  - `TF_VAR_project_id`
-  - `TF_VAR_selectel_ip_address`
+- Terraform: 1.5+ 
+- Ansible: 2.15+ 
+- Python: 3.12+
+- Git: 2.40+
+- Docker: 24.0+
+- kubectl: 1.28+
+- kubeseal: 0.25+ 
+- Helm: 3.14+
 
 Проверка: `make prereqs`
 
@@ -97,6 +92,20 @@ make up
 | `monitoring-sealed-secret.yaml` | Пароль админа Grafana (запечатать через kubeseal) |
 | `alertmanager-email-sealed-secret.yaml` | Конфиг Alertmanager для Email (Gmail SMTP, запечатать скриптом) |
 | `materials-api-sealed-secret.yaml` | Уже в репо — секрет приложения (Яндекс.Диск) |
+
+---
+
+### Подготовка Terraform (обязательно перед первым `make up`)
+
+Перед первым запуском `make up` создайте файл `terraform/terraform.tfvars` в директории `terraform/` со значениями переменных:
+
+| Переменная | Описание |
+|---|---|
+| `selectel_username` | Имя пользователя Selectel Cloud |
+| `selectel_account` | Имя домена/аккаунта |
+| `project_id` | ID проекта |
+| `selectel_password` | Пароль Selectel Cloud |
+| `selectel_ip_address` | Зарезервированный Floating IP |
 
 ---
 
