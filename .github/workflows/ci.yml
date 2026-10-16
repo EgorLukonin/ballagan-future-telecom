@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE_NAME: guber45/ballagan-telecom-api
+  IMAGE_NAME: docker.io/guber45/ballagan-telecom-api
 
 jobs:
   lint:
